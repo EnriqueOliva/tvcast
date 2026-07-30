@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TV Cast</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📺</text></svg>">
+<style>
+:root{
+  --background:#0b0d10; --surface:#151a20; --surface-high:#1e252d; --line:#2a333d;
+  --text:#e9eef4; --muted:#8b98a7; --accent:#4da3ff; --danger:#ff6b6b; --success:#3ddc84;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --radius:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:var(--background); color:var(--text);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  display:flex; flex-direction:column; overscroll-behavior:none;
+}
+button,select,input{font-family:inherit}
+button{
+  background:var(--surface); color:var(--text); border:1px solid var(--line);
+  border-radius:12px; padding:12px 14px; font-size:15px; font-weight:600;
+  min-height:46px; cursor:pointer; transition:background .12s,opacity .12s;
+}
+button:active:not([disabled]){background:var(--surface-high)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
+button[disabled]{opacity:.42;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{
+  appearance:none;-webkit-appearance:none;
+  background:var(--surface-high) no-repeat right 8px center;
+  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%238b98a7' stroke-width='2'/></svg>");
+  border:1px solid var(--line); border-radius:10px; color:var(--text);
+  font-size:14px; font-weight:600; padding:10px 28px 10px 10px; min-height:44px; outline:none;
+}
+select option{background:var(--surface-high);color:var(--text)}
+
+header{
+  flex:none; background:var(--background); border-bottom:1px solid var(--line);
+  padding:calc(8px + var(--safe-top)) 12px 10px;
+}
+.now{display:flex;align-items:flex-start;gap:9px;margin-bottom:6px;min-height:24px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex:none;margin-top:5px}
+.dot.on{background:var(--success)}
+.now .t{
+  font-size:14px;font-weight:600;flex:1;min-width:0;line-height:1.3;padding-top:1px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.now .s{font-size:11px;color:var(--muted);flex:none;padding-top:3px}
+.now .s.busy{color:var(--accent)}
+.iconbutton{flex:none;padding:8px 10px;min-width:40px;min-height:40px;font-size:16px;font-weight:400}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0
+}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--surface-high)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);
+  margin-top:-7px;border:0
+}
+input[type=range][disabled]::-webkit-slider-thumb{background:var(--muted)}
+.times{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:-6px 0 8px}
+.controls{display:flex;gap:6px;align-items:stretch}
+.controls + .controls{margin-top:6px}
+.controls button{flex:1;padding:12px 6px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:7px}
+.controls svg{flex:none}
+.skip{font-variant-numeric:tabular-nums}
+.playpause{flex:1.5;min-height:54px;font-size:16px}
+.eject{flex:1}
+.eject svg{color:var(--danger)}
+.controls select{flex:0 0 auto;max-width:44%}
+.settings{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.settings[hidden]{display:none}
+.settings .label{font-size:12px;color:var(--muted);flex:none}
+.settings select{flex:1;min-width:0}
+
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px calc(16px + var(--safe-bottom))}
+.message{
+  display:none;position:sticky;top:0;z-index:5;margin:10px 0 0;
+  background:var(--surface-high);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;font-size:13px;line-height:1.45;gap:10px;align-items:flex-start;
+}
+.message.show{display:flex}
+.message.error{border-color:var(--danger)}
+.message .text{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:30vh;overflow-y:auto}
+.message .close{
+  flex:none;background:transparent;border:0;color:var(--muted);
+  padding:0 2px;min-height:0;font-size:18px;font-weight:400;line-height:1
+}
+
+.castrow{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.castrow input{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  color:var(--text);padding:13px 14px;font-size:16px;outline:none;width:100%
+}
+.castrow input:focus{border-color:var(--accent)}
+.castbuttons{display:flex;gap:8px}
+.castbuttons button{flex:1}
+#jobs:not(:empty){margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.job{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.job.failed{border-color:var(--danger);color:var(--danger)}
+.job .bar{height:4px;border-radius:2px;background:var(--surface-high);margin-top:6px;overflow:hidden}
+.job .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+
+.sectionhead{
+  width:100%;display:flex;align-items:center;gap:10px;margin:14px 0 8px;
+  background:transparent;border:0;padding:6px 2px;min-height:40px;
+  font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);
+}
+.sectionhead .chevron{font-size:11px;transition:transform .16s;display:inline-block}
+.sectionhead.collapsed .chevron{transform:rotate(-90deg)}
+.sectionhead .count{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none}
+#list[hidden]{display:none}
+.item{display:flex;margin-bottom:8px}
+.itemmain{
+  flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;
+  border-radius:var(--radius);padding:12px 14px;
+}
+.itemmain .body{min-width:0;flex:1}
+.itemmain .title{
+  font-weight:600;font-size:15px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.itemmain .meta{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}
+.itemmain .glyph{flex:none;color:var(--muted);font-size:15px}
+.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.badge{
+  font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  background:var(--surface-high);color:var(--muted);border-radius:6px;padding:3px 6px;
+}
+.badge.resume{background:#243a52;color:#9ccbff}
+.empty{color:var(--muted);text-align:center;padding:40px 20px;font-size:14px;line-height:1.6}
+
+.sheet{
+  position:fixed;inset:0;z-index:60;background:rgba(4,7,10,.72);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:calc(16px + var(--safe-top)) 16px 16px;
+  opacity:0;pointer-events:none;transition:opacity .18s;
+}
+.sheet.show{opacity:1;pointer-events:auto}
+.sheet .panel{
+  width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;padding:16px;
+}
+.sheet .heading{font-size:15px;font-weight:700;margin-bottom:6px}
+.sheet .detail{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+.sheet .actions{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="now">
+    <div class="dot" id="dot" title="TV connection"></div>
+    <div class="t" id="nowTitle">Nothing playing</div>
+    <div class="s" id="nowState"></div>
+    <button class="iconbutton" id="settingsToggle" title="Settings" aria-label="Settings">⚙</button>
+  </div>
+  <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Position">
+  <div class="times"><span id="posText">0:00</span><span id="durText">0:00</span></div>
+  <div class="controls">
+    <button class="skip" id="back10" aria-label="Back 10 seconds">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>10s
+    </button>
+    <button class="primary playpause" id="playPause" aria-label="Play"></button>
+    <button class="skip" id="forward10" aria-label="Forward 10 seconds">
+      10s<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/></svg>
+    </button>
+  </div>
+  <div class="controls" id="mediaOptions" hidden>
+    <select id="quality" aria-label="Quality" hidden></select>
+    <select id="subtitle" aria-label="Subtitles" hidden></select>
+  </div>
+  <div class="controls">
+    <button class="eject" id="eject" aria-label="Remove from the TV">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5.5 19 14H5zM5 16.5h14V19H5z"/></svg>Remove from TV
+    </button>
+  </div>
+  <div id="settingsPanel" hidden>
+    <div class="settings">
+      <span class="label">TV</span>
+      <select id="deviceSelect" aria-label="Television"></select>
+      <button class="iconbutton" id="rescan" title="Rescan library" aria-label="Rescan library">⟳</button>
+    </div>
+    <div class="settings" id="subtitleDelayRow" hidden>
+      <span class="label">Subtitle delay</span>
+      <button class="iconbutton" id="subtitleEarlier" aria-label="Subtitles half a second earlier">−½s</button>
+      <span class="label" id="subtitleDelayText">0.0s</span>
+      <button class="iconbutton" id="subtitleLater" aria-label="Subtitles half a second later">+½s</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="message" id="message">
+    <div class="text" id="messageText"></div>
+    <button class="close" id="messageClose" aria-label="Dismiss">×</button>
+  </div>
+
+  <div class="castrow">
+    <input type="url" id="linkInput" placeholder="Paste a video link…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="castbuttons">
+      <button class="primary" id="castLink">▶︎ Watch now</button>
+      <button id="downloadLink">↓ Download</button>
+    </div>
+  </div>
+
+  <div id="jobs"></div>
+
+  <button class="sectionhead" id="libraryToggle" aria-expanded="true">
+    <span class="chevron">▼</span>
+    <span>Library</span>
+    <span class="count" id="libraryCount"></span>
+  </button>
+  <div id="list"><div class="empty">Loading library…</div></div>
+</main>
+
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <div class="heading" id="sheetHeading"></div>
+    <div class="detail" id="sheetDetail"></div>
+    <div class="actions" id="sheetActions"></div>
+  </div>
+</div>
+
+<script>
+const STATE_POLL_INTERVAL_MILLISECONDS = 2000;
+const JOBS_POLL_INTERVAL_MILLISECONDS = 2500;
+const SKIP_SECONDS = 10;
+const PLAY_ICON = '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="currentColor" d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>';
+const NOTICE_HIDE_MILLISECONDS = 4000;
+const MINIMUM_SLIDER_RANGE = 1;
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+const BYTES_PER_GIGABYTE = 1024 * 1024 * 1024;
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_MINUTE = 60;
+const JOB_LINE_LIMIT = 70;
+const PERCENT_DECIMALS = 0;
+const LIBRARY_COLLAPSED_KEY = 'tvcast.libraryCollapsed';
+
+const listElement = document.getElementById('list');
+const libraryToggleElement = document.getElementById('libraryToggle');
+const libraryCountElement = document.getElementById('libraryCount');
+const settingsToggleElement = document.getElementById('settingsToggle');
+const settingsPanelElement = document.getElementById('settingsPanel');
+const deviceSelectElement = document.getElementById('deviceSelect');
+const dotElement = document.getElementById('dot');
+const nowTitleElement = document.getElementById('nowTitle');
+const nowStateElement = document.getElementById('nowState');
+const seekElement = document.getElementById('seek');
+const qualityElement = document.getElementById('quality');
+const subtitleElement = document.getElementById('subtitle');
+const mediaOptionsElement = document.getElementById('mediaOptions');
+const subtitleDelayRowElement = document.getElementById('subtitleDelayRow');
+const subtitleDelayTextElement = document.getElementById('subtitleDelayText');
+const positionTextElement = document.getElementById('posText');
+const durationTextElement = document.getElementById('durText');
+const playPauseElement = document.getElementById('playPause');
+const back10Element = document.getElementById('back10');
+const forward10Element = document.getElementById('forward10');
+const ejectElement = document.getElementById('eject');
+const linkInputElement = document.getElementById('linkInput');
+const castLinkElement = document.getElementById('castLink');
+const downloadLinkElement = document.getElementById('downloadLink');
+const rescanElement = document.getElementById('rescan');
+const jobsElement = document.getElementById('jobs');
+const messageElement = document.getElementById('message');
+const messageTextElement = document.getElementById('messageText');
+const messageCloseElement = document.getElementById('messageClose');
+const sheetElement = document.getElementById('sheet');
+const sheetHeadingElement = document.getElementById('sheetHeading');
+const sheetDetailElement = document.getElementById('sheetDetail');
+const sheetActionsElement = document.getElementById('sheetActions');
+
+const transportButtons = [playPauseElement, back10Element, forward10Element, ejectElement];
+
+let isDraggingSeek = false;
+let isSwitchingQuality = false;
+let isSwitchingSubtitle = false;
+let pendingSeekTarget = null;
+let busyReason = '';
+let currentDurationSeconds = 0;
+let currentState = 'STOPPED';
+let noticeTimer = null;
+
+function formatTime(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+  const hours = Math.floor(safeSeconds / SECONDS_PER_HOUR);
+  const minutes = Math.floor((safeSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const seconds = safeSeconds % SECONDS_PER_MINUTE;
+  const pad = (value) => String(value).padStart(2, '0');
+  if (hours > 0) {
+    return hours + ':' + pad(minutes) + ':' + pad(seconds);
+  }
+  return minutes + ':' + pad(seconds);
+}
+
+function formatSize(bytes) {
+  const gigabytes = bytes / BYTES_PER_GIGABYTE;
+  if (gigabytes >= 1) {
+    return gigabytes.toFixed(1) + ' GB';
+  }
+  return Math.round(bytes / BYTES_PER_MEGABYTE) + ' MB';
+}
+
+function showNotice(text) {
+  clearTimeout(noticeTimer);
+  messageTextElement.textContent = text;
+  messageElement.classList.remove('error');
+  messageElement.classList.add('show');
+  noticeTimer = setTimeout(hideMessage, NOTICE_HIDE_MILLISECONDS);
+}
+
+function showFailure(text) {
+  clearTimeout(noticeTimer);
+  messageTextElement.textContent = text;
+  messageElement.classList.add('error', 'show');
+}
+
+function hideMessage() {
+  clearTimeout(noticeTimer);
+  messageElement.classList.remove('show');
+}
+
+messageCloseElement.addEventListener('click', hideMessage);
+
+settingsToggleElement.addEventListener('click', () => {
+  settingsPanelElement.hidden = settingsPanelElement.hidden === false;
+});
+
+function setLibraryCollapsed(collapsed) {
+  listElement.hidden = collapsed;
+  libraryToggleElement.classList.toggle('collapsed', collapsed);
+  libraryToggleElement.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  try {
+    localStorage.setItem(LIBRARY_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch (error) {
+    void error;
+  }
+}
+
+libraryToggleElement.addEventListener('click', () => {
+  setLibraryCollapsed(listElement.hidden === false);
+});
+
+function openSheet(heading, detail, actions) {
+  sheetHeadingElement.textContent = heading;
+  sheetDetailElement.textContent = detail;
+  sheetActionsElement.innerHTML = '';
+  for (const action of actions) {
+    const button = document.createElement('button');
+    button.textContent = action.label;
+    if (action.primary) {
+      button.className = 'primary';
+    }
+    button.addEventListener('click', () => {
+      closeSheet();
+      action.run();
+    });
+    sheetActionsElement.appendChild(button);
+  }
+  sheetElement.classList.add('show');
+}
+
+function closeSheet() {
+  sheetElement.classList.remove('show');
+}
+
+sheetElement.addEventListener('click', (event) => {
+  if (event.target === sheetElement) {
+    closeSheet();
+  }
+});
+
+function setBusy(reason) {
+  busyReason = reason;
+  const isBusy = reason !== '';
+  for (const button of transportButtons) {
+    button.disabled = isBusy;
+  }
+  qualityElement.disabled = isBusy;
+  subtitleElement.disabled = isBusy;
+  seekElement.disabled = isBusy;
+  castLinkElement.disabled = isBusy;
+  nowStateElement.classList.toggle('busy', isBusy);
+  if (isBusy) {
+    nowStateElement.textContent = reason;
+  }
+}
+
+async function callApi(pathName, options) {
+  const response = await fetch(pathName, options);
+  const payload = await response.json().catch(() => ({}));
+  if (response.ok === false) {
+    throw new Error(payload.error || ('HTTP ' + response.status));
+  }
+  return payload;
+}
+
+function postJson(pathName, body) {
+  return callApi(pathName, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+async function runExclusive(reason, work) {
+  if (busyReason !== '') {
+    return;
+  }
+  setBusy(reason);
+  try {
+    await work();
+  } catch (error) {
+    showFailure(error.message);
+  }
+  setBusy('');
+}
+
+function buildBadges(item) {
+  const badges = [];
+  if (item.resumeSeconds > 0) {
+    badges.push('<span class="badge resume">resume ' + formatTime(item.resumeSeconds) + '</span>');
+  }
+  if (item.hasSubtitle) {
+    badges.push('<span class="badge">sub</span>');
+  }
+  if (badges.length === 0) {
+    return '';
+  }
+  return '<div class="badges">' + badges.join('') + '</div>';
+}
+
+function buildItemRow(item) {
+  const row = document.createElement('div');
+  row.className = 'item';
+  const mainButton = document.createElement('button');
+  mainButton.className = 'itemmain';
+  mainButton.innerHTML = '<div class="body"><div class="title">' + item.title + '</div>'
+    + '<div class="meta">' + item.folder + ' · ' + formatSize(item.sizeBytes) + '</div>'
+    + buildBadges(item) + '</div><div class="glyph">▶︎</div>';
+  mainButton.addEventListener('click', () => askThenPlay(item));
+  row.appendChild(mainButton);
+  return row;
+}
+
+async function loadLibrary() {
+  try {
+    const payload = await callApi('/api/library');
+    libraryCountElement.textContent = payload.items.length;
+    if (payload.items.length === 0) {
+      listElement.innerHTML = '<div class="empty">No videos yet.<br>Add folders to config.json and press ⟳ in settings.</div>';
+    } else {
+      listElement.innerHTML = '';
+      for (const item of payload.items) {
+        listElement.appendChild(buildItemRow(item));
+      }
+    }
+  } catch (error) {
+    libraryCountElement.textContent = '';
+    listElement.innerHTML = '<div class="empty">Cannot reach the PC.<br>Is the tvcast server running?</div>';
+  }
+}
+
+function askThenPlay(item) {
+  if (item.resumeSeconds > 0) {
+    openSheet(item.title, 'You stopped at ' + formatTime(item.resumeSeconds) + '.', [
+      { label: 'Resume at ' + formatTime(item.resumeSeconds), primary: true, run: () => playItem(item, item.resumeSeconds) },
+      { label: 'Start from the beginning', run: () => playItem(item, 0) }
+    ]);
+  } else {
+    playItem(item, 0);
+  }
+}
+
+function playItem(item, startSeconds) {
+  runExclusive('sending…', async () => {
+    await postJson('/api/play', { itemId: item.id, startSeconds });
+    showNotice('▶︎ ' + item.title);
+  });
+}
+
+function sendControl(action, value) {
+  return postJson('/api/control', { action, value });
+}
+
+function requestSeek(targetSeconds) {
+  const clamped = Math.max(0, Math.min(currentDurationSeconds, Math.round(targetSeconds)));
+  pendingSeekTarget = clamped;
+  seekElement.value = clamped;
+  positionTextElement.textContent = formatTime(clamped);
+  runExclusive('jumping…', async () => {
+    await sendControl('seek', clamped);
+  }).then(() => {
+    pendingSeekTarget = null;
+  });
+}
+
+function updateSeekDisplay(playback) {
+  currentDurationSeconds = playback.durationSeconds;
+  seekElement.max = Math.max(MINIMUM_SLIDER_RANGE, playback.durationSeconds);
+  durationTextElement.textContent = formatTime(playback.durationSeconds);
+
+  if (isDraggingSeek) {
+    return;
+  }
+  if (pendingSeekTarget !== null) {
+    seekElement.value = pendingSeekTarget;
+    positionTextElement.textContent = formatTime(pendingSeekTarget);
+    return;
+  }
+  seekElement.value = playback.positionSeconds;
+  positionTextElement.textContent = formatTime(playback.positionSeconds);
+}
+
+function renderPlayPause(isPlaying) {
+  const label = isPlaying ? 'Pause' : 'Play';
+  const icon = isPlaying ? PAUSE_ICON : PLAY_ICON;
+  if (playPauseElement.dataset.mode !== label) {
+    playPauseElement.innerHTML = icon + label;
+    playPauseElement.dataset.mode = label;
+    playPauseElement.setAttribute('aria-label', label);
+  }
+}
+
+function describeState(state) {
+  if (state === 'PLAYING') {
+    return 'playing';
+  } else if (state === 'PAUSED_PLAYBACK') {
+    return 'paused';
+  } else if (state === 'TRANSITIONING') {
+    return 'loading…';
+  } else if (state === 'UNREACHABLE' || state === 'NO_DEVICE') {
+    return 'TV offline';
+  } else {
+    return '';
+  }
+}
+
+async function refreshState() {
+  try {
+    const state = await callApi('/api/state');
+
+    if (deviceSelectElement.options.length !== state.devices.length) {
+      deviceSelectElement.innerHTML = '';
+      for (const device of state.devices) {
+        const option = document.createElement('option');
+        option.value = device.id;
+        option.textContent = device.name;
+        deviceSelectElement.appendChild(option);
+      }
+    }
+    if (state.selectedDeviceId) {
+      deviceSelectElement.value = state.selectedDeviceId;
+    }
+
+    const playback = state.playback;
+    currentState = playback.state;
+    const isLive = playback.state === 'PLAYING' || playback.state === 'PAUSED_PLAYBACK' || playback.state === 'TRANSITIONING';
+    const isConnected = state.devices.length > 0 && playback.state !== 'UNREACHABLE' && playback.state !== 'NO_DEVICE';
+    dotElement.classList.toggle('on', isConnected);
+    dotElement.title = isConnected ? 'Connected to ' + (state.devices[0] || {}).name : 'No TV connected';
+
+    nowTitleElement.textContent = playback.title || (isLive ? 'Playing on TV' : 'Nothing playing');
+    if (busyReason === '') {
+      nowStateElement.textContent = describeState(playback.state);
+    }
+    renderPlayPause(playback.state === 'PLAYING');
+
+    updateSeekDisplay(playback);
+    renderQualityOptions(playback.renditions, playback.selectedRenditionId);
+    renderSubtitleOptions(playback.subtitleTracks, playback.selectedSubtitleId, playback.subtitleOffsetSeconds);
+    mediaOptionsElement.hidden = qualityElement.hidden && subtitleElement.hidden;
+  } catch (error) {
+    dotElement.classList.remove('on');
+    dotElement.title = 'Server offline';
+    if (busyReason === '') {
+      nowStateElement.textContent = 'server offline';
+    }
+  }
+}
+
+function renderQualityOptions(renditions, selectedRenditionId) {
+  if (Array.isArray(renditions) === false || renditions.length === 0) {
+    qualityElement.hidden = true;
+    qualityElement.dataset.signature = '';
+    return;
+  }
+  const signature = renditions.map((entry) => entry.identifier).join('|');
+  if (qualityElement.dataset.signature !== signature) {
+    qualityElement.innerHTML = renditions
+      .map((entry) => '<option value="' + entry.identifier + '">' + entry.displayLabel + '</option>')
+      .join('');
+    qualityElement.dataset.signature = signature;
+  }
+  if (isSwitchingQuality === false) {
+    qualityElement.value = selectedRenditionId || '';
+  }
+  qualityElement.hidden = false;
+}
+
+function renderSubtitleOptions(tracks, selectedSubtitleId, offsetSeconds) {
+  if (Array.isArray(tracks) === false || tracks.length === 0) {
+    subtitleElement.hidden = true;
+    subtitleElement.dataset.signature = '';
+    subtitleDelayRowElement.hidden = true;
+    return;
+  }
+  const signature = tracks.map((track) => track.identifier).join('|');
+  if (subtitleElement.dataset.signature !== signature) {
+    const options = ['<option value="">Subtitles off</option>']
+      .concat(tracks.map((track) => '<option value="' + track.identifier + '">' + track.language + '</option>'));
+    subtitleElement.innerHTML = options.join('');
+    subtitleElement.dataset.signature = signature;
+  }
+  if (isSwitchingSubtitle === false) {
+    subtitleElement.value = selectedSubtitleId || '';
+  }
+  subtitleElement.hidden = false;
+  const hasSubtitle = (selectedSubtitleId || '') !== '';
+  subtitleDelayRowElement.hidden = hasSubtitle === false;
+  const delay = Number(offsetSeconds || 0);
+  subtitleDelayTextElement.textContent = (delay > 0 ? '+' : '') + delay.toFixed(1) + 's';
+}
+
+subtitleElement.addEventListener('change', () => {
+  const chosen = subtitleElement.options[subtitleElement.selectedIndex];
+  const chosenId = subtitleElement.value;
+  isSwitchingSubtitle = true;
+  runExclusive(chosenId === '' ? 'removing subtitles…' : 'burning in ' + chosen.textContent + '…', async () => {
+    await postJson('/api/cast-subtitle', { subtitleId: chosenId });
+    showNotice(chosenId === '' ? 'Subtitles off' : chosen.textContent + ' subtitles on');
+  }).then(() => {
+    isSwitchingSubtitle = false;
+  });
+});
+
+function nudgeSubtitle(deltaSeconds) {
+  runExclusive('shifting subtitles…', async () => {
+    const result = await postJson('/api/subtitle-offset', { deltaSeconds });
+    const delay = Number(result.subtitleOffsetSeconds || 0);
+    showNotice('Subtitle delay ' + (delay > 0 ? '+' : '') + delay.toFixed(1) + 's');
+  });
+}
+
+document.getElementById('subtitleEarlier').addEventListener('click', () => nudgeSubtitle(-0.5));
+document.getElementById('subtitleLater').addEventListener('click', () => nudgeSubtitle(0.5));
+
+qualityElement.addEventListener('change', () => {
+  const chosen = qualityElement.options[qualityElement.selectedIndex];
+  const chosenId = qualityElement.value;
+  isSwitchingQuality = true;
+  runExclusive('switching to ' + chosen.textContent + '…', async () => {
+    const result = await postJson('/api/cast-quality', { renditionId: chosenId });
+    showNotice('Now at ' + result.quality);
+  }).then(() => {
+    isSwitchingQuality = false;
+  });
+});
+
+rescanElement.addEventListener('click', () => {
+  runExclusive('rescanning…', async () => {
+    const result = await callApi('/api/scan', { method: 'POST' });
+    showNotice(result.count + ' videos found');
+    await loadLibrary();
+  });
+});
+
+deviceSelectElement.addEventListener('change', () => {
+  runExclusive('switching TV…', async () => {
+    await postJson('/api/select-device', { deviceId: deviceSelectElement.value });
+    showNotice('TV switched');
+  });
+});
+
+playPauseElement.addEventListener('click', () => {
+  const action = currentState === 'PLAYING' ? 'pause' : 'resume';
+  runExclusive(action === 'pause' ? 'pausing…' : 'resuming…', async () => {
+    await sendControl(action);
+  });
+});
+
+ejectElement.addEventListener('click', () => {
+  runExclusive('removing…', async () => {
+    await sendControl('stop');
+    pendingSeekTarget = null;
+    showNotice('Removed from the TV');
+  });
+});
+
+back10Element.addEventListener('click', () => {
+  requestSeek(Number(seekElement.value) - SKIP_SECONDS);
+});
+
+forward10Element.addEventListener('click', () => {
+  requestSeek(Number(seekElement.value) + SKIP_SECONDS);
+});
+
+seekElement.addEventListener('input', () => {
+  isDraggingSeek = true;
+  positionTextElement.textContent = formatTime(Number(seekElement.value));
+});
+
+seekElement.addEventListener('change', () => {
+  isDraggingSeek = false;
+  requestSeek(Number(seekElement.value));
+});
+
+castLinkElement.addEventListener('click', () => {
+  const link = linkInputElement.value.trim();
+  if (link === '') {
+    showNotice('Paste a link first');
+    return;
+  }
+  runExclusive('resolving…', async () => {
+    const result = await postJson('/api/cast-url', { url: link });
+    const quality = result.quality ? ' · ' + result.quality : '';
+    showNotice('▶︎ ' + result.title + quality);
+    linkInputElement.value = '';
+  });
+});
+
+downloadLinkElement.addEventListener('click', async () => {
+  const link = linkInputElement.value.trim();
+  if (link === '') {
+    showNotice('Paste a link first');
+    return;
+  }
+  downloadLinkElement.disabled = true;
+  try {
+    await postJson('/api/download', { url: link });
+    showNotice('Download started · saving to the PC');
+    linkInputElement.value = '';
+    refreshJobs();
+  } catch (error) {
+    showFailure(error.message);
+  }
+  downloadLinkElement.disabled = false;
+});
+
+async function refreshJobs() {
+  try {
+    const payload = await callApi('/api/jobs');
+    const active = payload.jobs.filter((job) => job.done === false || job.failed);
+    if (active.length === 0) {
+      jobsElement.innerHTML = '';
+    } else {
+      jobsElement.innerHTML = active.map((job) => {
+        const label = job.failed ? 'failed' : (job.done ? 'done' : job.percent.toFixed(PERCENT_DECIMALS) + '%');
+        const className = job.failed ? 'job failed' : 'job';
+        return '<div class="' + className + '">↓ ' + label + ' · ' + (job.line || '').slice(0, JOB_LINE_LIMIT)
+          + '<div class="bar"><i style="width:' + (job.percent || 0) + '%"></i></div></div>';
+      }).join('');
+    }
+  } catch (error) {
+    void error;
+  }
+}
+
+function restoreLibraryState() {
+  let collapsed = false;
+  try {
+    collapsed = localStorage.getItem(LIBRARY_COLLAPSED_KEY) === '1';
+  } catch (error) {
+    void error;
+  }
+  setLibraryCollapsed(collapsed);
+}
+
+const initialLink = new URLSearchParams(location.search).get('cast');
+if (initialLink) {
+  linkInputElement.value = initialLink;
+}
+
+renderPlayPause(false);
+restoreLibraryState();
+loadLibrary();
+refreshState();
+refreshJobs();
+setInterval(refreshState, STATE_POLL_INTERVAL_MILLISECONDS);
+setInterval(refreshJobs, JOBS_POLL_INTERVAL_MILLISECONDS);
+</script>
+</body>
+</html>

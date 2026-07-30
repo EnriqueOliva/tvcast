@@ -1,0 +1,32 @@
+# Runtime state — resume positions, last TV used
+state.json
+
+# Local configuration. Copy config.example.json to config.json and edit.
+config.json
+
+# Logs written by start.ps1
+server.log
+server.err
+
+# Prepared subtitle files, regenerated on every cast
+cache/
+
+# Android build output, and the signing key. The keystore must never be published:
+# anyone holding it can sign an update that replaces the installed app.
+android/out/
+android/*.keystore
+
+# Third-party binary, fetched separately. See the README.
+bin/yt-dlp.exe
+
+# Scratch audio and models pulled by tools/subsync.cjs
+tools/__pycache__/
+*.wav
+
+# Stray captures
+*.png
+
+node_modules/
+
+# Unused 8 MB fixture, kept locally
+test/tvcast-selftest.mkv

@@ -1,0 +1,13 @@
+{
+  "port": 8787,
+  "preferredDeviceName": "Whale",
+  "libraryRoots": [
+    "B:\\Media"
+  ],
+  "ytdlpCookiesFromBrowser": "firefox",
+  "ytdlpImpersonate": "",
+  "ytdlpExtraArgs": [],
+  "tmdbApiKey": "",
+  "cinebyMaximumHeight": 1080,
+  "cinebyDirectHls": false
+}

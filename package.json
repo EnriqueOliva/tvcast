@@ -1,0 +1,12 @@
+{
+  "name": "tvcast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Watch anything on the Whale TV, driven from the phone.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "subsync": "node tools/subsync.cjs"
+  }
+}
