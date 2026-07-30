@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test \"test/*.test.js\"",
-    "subsync": "node tools/subsync.cjs"
+    "subsync": "node tools/subsync.cjs",
+    "poc:player": "node tools/poc-external-player.cjs"
   }
 }
