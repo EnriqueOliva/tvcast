@@ -207,12 +207,20 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px calc
   <div class="castrow">
     <input type="url" id="linkInput" placeholder="Paste a video link…" autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="castbuttons">
-      <button class="primary" id="castLink">▶︎ Watch now</button>
+      <button class="primary" id="sendToTelevision">📺 Send to TV</button>
+      <button id="castLink">▶︎ Watch here</button>
       <button id="downloadLink">↓ Download</button>
     </div>
   </div>
 
   <div id="jobs"></div>
+
+  <button class="sectionhead" id="televisionToggle" aria-expanded="true">
+    <span class="chevron">▼</span>
+    <span>On the TV</span>
+    <span class="count" id="televisionCount"></span>
+  </button>
+  <div id="televisionList"></div>
 
   <button class="sectionhead" id="libraryToggle" aria-expanded="true">
     <span class="chevron">▼</span>
@@ -269,6 +277,10 @@ const forward10Element = document.getElementById('forward10');
 const ejectElement = document.getElementById('eject');
 const linkInputElement = document.getElementById('linkInput');
 const castLinkElement = document.getElementById('castLink');
+const sendToTelevisionElement = document.getElementById('sendToTelevision');
+const televisionToggleElement = document.getElementById('televisionToggle');
+const televisionCountElement = document.getElementById('televisionCount');
+const televisionListElement = document.getElementById('televisionList');
 const downloadLinkElement = document.getElementById('downloadLink');
 const rescanElement = document.getElementById('rescan');
 const jobsElement = document.getElementById('jobs');
@@ -729,6 +741,127 @@ castLinkElement.addEventListener('click', () => {
   });
 });
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function describeTelevisionResult(result) {
+  const parts = [];
+  if (result.quality) {
+    parts.push(result.quality);
+  }
+  if (result.provider) {
+    parts.push(result.provider);
+  }
+  if (result.burningSubtitles) {
+    parts.push('subtitles burned in');
+  }
+  return parts.length === 0 ? '' : ' · ' + parts.join(' · ');
+}
+
+async function sendLinkToTelevision(link, subtitleId, renditionId) {
+  const result = await postJson('/api/send-to-tv', {
+    url: link,
+    subtitleId: subtitleId || '',
+    renditionId: renditionId || ''
+  });
+  showNotice('📺 ' + result.title + describeTelevisionResult(result));
+  await loadTelevisionLibrary();
+  return result;
+}
+
+function offerTelevisionOptions(link, result) {
+  const tracks = result.subtitleTracks || [];
+  const renditions = result.renditions || [];
+  if (tracks.length === 0 && renditions.length <= 1) {
+    return;
+  }
+  sheetHeadingElement.textContent = result.title;
+  sheetDetailElement.textContent = 'Now on the TV. Open Media Center on the TV to play it. '
+    + 'Pick a subtitle or quality below to send it again with that choice.';
+  const actions = [];
+  for (const track of tracks) {
+    actions.push({ label: 'Subtitles: ' + track.language, subtitleId: track.identifier, renditionId: '' });
+  }
+  for (const rendition of renditions) {
+    actions.push({
+      label: 'Quality: ' + rendition.displayLabel + ' (' + rendition.provider + ')',
+      subtitleId: '',
+      renditionId: rendition.identifier
+    });
+  }
+  sheetActionsElement.innerHTML = '';
+  for (const action of actions) {
+    const button = document.createElement('button');
+    button.textContent = action.label;
+    button.addEventListener('click', () => {
+      closeSheet();
+      runExclusive('sending…', async () => {
+        await sendLinkToTelevision(link, action.subtitleId, action.renditionId);
+      });
+    });
+    sheetActionsElement.appendChild(button);
+  }
+  const dismiss = document.createElement('button');
+  dismiss.textContent = 'Done';
+  dismiss.addEventListener('click', closeSheet);
+  sheetActionsElement.appendChild(dismiss);
+  sheetElement.classList.add('show');
+}
+
+sendToTelevisionElement.addEventListener('click', () => {
+  const link = linkInputElement.value.trim();
+  if (link === '') {
+    showNotice('Paste a link first');
+    return;
+  }
+  runExclusive('sending to the TV…', async () => {
+    const result = await sendLinkToTelevision(link, '', '');
+    linkInputElement.value = '';
+    offerTelevisionOptions(link, result);
+  });
+});
+
+async function loadTelevisionLibrary() {
+  try {
+    const payload = await callApi('/api/tv-library');
+    const items = payload.items || [];
+    televisionCountElement.textContent = items.length === 0 ? '' : String(items.length);
+    if (items.length === 0) {
+      televisionListElement.innerHTML = '<div class="empty">Nothing sent yet. '
+        + 'Send a link here, then open Media Center on the TV and pick it with the remote.</div>';
+    } else {
+      televisionListElement.innerHTML = items.map((item) => {
+        const badges = [];
+        if (item.durationSeconds > 0) {
+          badges.push('<span class="badge">' + formatTime(item.durationSeconds) + '</span>');
+        }
+        if (item.burningSubtitles) {
+          badges.push('<span class="badge">subtitles</span>');
+        }
+        return '<div class="item"><div class="itemmain"><div class="body">'
+          + '<div class="title">' + escapeHtml(item.title) + '</div>'
+          + '<div class="badges">' + badges.join('') + '</div>'
+          + '</div></div></div>';
+      }).join('');
+    }
+  } catch (error) {
+    void error;
+  }
+}
+
+function setTelevisionCollapsed(collapsed) {
+  televisionListElement.hidden = collapsed;
+  televisionToggleElement.classList.toggle('collapsed', collapsed);
+  televisionToggleElement.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+}
+
+televisionToggleElement.addEventListener('click', () => {
+  setTelevisionCollapsed(televisionListElement.hidden === false);
+});
+
 downloadLinkElement.addEventListener('click', async () => {
   const link = linkInputElement.value.trim();
   if (link === '') {
@@ -784,6 +917,7 @@ if (initialLink) {
 renderPlayPause(false);
 restoreLibraryState();
 loadLibrary();
+loadTelevisionLibrary();
 refreshState();
 refreshJobs();
 setInterval(refreshState, STATE_POLL_INTERVAL_MILLISECONDS);
