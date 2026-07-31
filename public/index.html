@@ -7,12 +7,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>TV Cast</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📺</text></svg>">
+<title>tvcast</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128250;</text></svg>">
 <style>
 :root{
   --background:#0b0d10; --surface:#151a20; --surface-high:#1e252d; --line:#2a333d;
-  --text:#e9eef4; --muted:#8b98a7; --accent:#4da3ff; --danger:#ff6b6b; --success:#3ddc84;
+  --text:#e9eef4; --muted:#8b98a7; --accent:#4da3ff;
+  --danger:#ff6b6b; --success:#3ddc84; --warning:#ffc257;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --radius:14px;
@@ -24,904 +25,710 @@ body{
   font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   display:flex; flex-direction:column; overscroll-behavior:none;
 }
-button,select,input{font-family:inherit}
+button,input{font-family:inherit}
 button{
   background:var(--surface); color:var(--text); border:1px solid var(--line);
-  border-radius:12px; padding:12px 14px; font-size:15px; font-weight:600;
-  min-height:46px; cursor:pointer; transition:background .12s,opacity .12s;
+  border-radius:12px; padding:13px 14px; font-size:15px; font-weight:600;
+  min-height:50px; cursor:pointer; transition:background .12s,opacity .12s;
 }
 button:active:not([disabled]){background:var(--surface-high)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
 button[disabled]{opacity:.42;cursor:default}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-select{
-  appearance:none;-webkit-appearance:none;
-  background:var(--surface-high) no-repeat right 8px center;
-  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%238b98a7' stroke-width='2'/></svg>");
-  border:1px solid var(--line); border-radius:10px; color:var(--text);
-  font-size:14px; font-weight:600; padding:10px 28px 10px 10px; min-height:44px; outline:none;
+button.primary{background:var(--accent);border-color:var(--accent);color:#04121f;flex:1}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=url],input[type=search]{
+  width:100%; background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  color:var(--text); font-size:16px; padding:14px; min-height:52px; outline:none;
+  -webkit-appearance:none; appearance:none;
 }
-select option{background:var(--surface-high);color:var(--text)}
+input::placeholder{color:var(--muted)}
+input:focus{border-color:var(--accent)}
 
-header{
-  flex:none; background:var(--background); border-bottom:1px solid var(--line);
-  padding:calc(8px + var(--safe-top)) 12px 10px;
+.view{display:none;flex:1;flex-direction:column;min-height:0}
+.view.on{display:flex}
+
+.bar{
+  flex:none; display:flex; align-items:center; gap:9px;
+  padding:calc(10px + var(--safe-top)) 14px 10px; border-bottom:1px solid var(--line);
 }
-.now{display:flex;align-items:flex-start;gap:9px;margin-bottom:6px;min-height:24px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex:none;margin-top:5px}
+.brand{font-weight:700;font-size:15px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
 .dot.on{background:var(--success)}
-.now .t{
-  font-size:14px;font-weight:600;flex:1;min-width:0;line-height:1.3;padding-top:1px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.now .s{font-size:11px;color:var(--muted);flex:none;padding-top:3px}
-.now .s.busy{color:var(--accent)}
-.iconbutton{flex:none;padding:8px 10px;min-width:40px;min-height:40px;font-size:16px;font-weight:400}
-input[type=range]{
-  -webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0
-}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--surface-high)}
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);
-  margin-top:-7px;border:0
-}
-input[type=range][disabled]::-webkit-slider-thumb{background:var(--muted)}
-.times{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:-6px 0 8px}
-.controls{display:flex;gap:6px;align-items:stretch}
-.controls + .controls{margin-top:6px}
-.controls button{flex:1;padding:12px 6px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:7px}
-.controls svg{flex:none}
-.skip{font-variant-numeric:tabular-nums}
-.playpause{flex:1.5;min-height:54px;font-size:16px}
-.eject{flex:1}
-.eject svg{color:var(--danger)}
-.controls select{flex:0 0 auto;max-width:44%}
-.settings{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-.settings[hidden]{display:none}
-.settings .label{font-size:12px;color:var(--muted);flex:none}
-.settings select{flex:1;min-width:0}
-
-main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px calc(16px + var(--safe-bottom))}
-.message{
-  display:none;position:sticky;top:0;z-index:5;margin:10px 0 0;
-  background:var(--surface-high);border:1px solid var(--line);border-radius:12px;
-  padding:12px 14px;font-size:13px;line-height:1.45;gap:10px;align-items:flex-start;
-}
-.message.show{display:flex}
-.message.error{border-color:var(--danger)}
-.message .text{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:30vh;overflow-y:auto}
-.message .close{
-  flex:none;background:transparent;border:0;color:var(--muted);
-  padding:0 2px;min-height:0;font-size:18px;font-weight:400;line-height:1
+.dot.off{background:var(--warning)}
+.tvlabel{
+  margin-left:auto; font-size:12px; color:var(--muted); text-align:right;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
-.castrow{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.castrow input{
-  background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  color:var(--text);padding:13px 14px;font-size:16px;outline:none;width:100%
-}
-.castrow input:focus{border-color:var(--accent)}
-.castbuttons{display:flex;gap:8px}
-.castbuttons button{flex:1}
-#jobs:not(:empty){margin-top:8px;display:flex;flex-direction:column;gap:6px}
-.job{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted)}
-.job.failed{border-color:var(--danger);color:var(--danger)}
-.job .bar{height:4px;border-radius:2px;background:var(--surface-high);margin-top:6px;overflow:hidden}
-.job .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.compose{padding:14px}
+.row{display:flex;gap:10px;margin-top:10px}
+.status{margin:12px 2px 0;font-size:13px;color:var(--muted);min-height:18px;line-height:1.35;overflow-wrap:anywhere}
+.status.busy{color:var(--accent)}
+.status.good{color:var(--success)}
+.status.warn{color:var(--warning)}
+.status.bad{color:var(--danger)}
 
-.sectionhead{
-  width:100%;display:flex;align-items:center;gap:10px;margin:14px 0 8px;
-  background:transparent;border:0;padding:6px 2px;min-height:40px;
-  font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);
+.card{margin:0 14px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.card[hidden]{display:none}
+.cardtitle{font-size:16px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.cardmeta{margin-top:4px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.group{margin-top:13px}
+.group[hidden]{display:none}
+.grouplabel{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+.chip{
+  background:var(--surface-high); border:1px solid var(--line); color:var(--text);
+  border-radius:999px; padding:9px 14px; font-size:14px; min-height:42px;
 }
-.sectionhead .chevron{font-size:11px;transition:transform .16s;display:inline-block}
-.sectionhead.collapsed .chevron{transform:rotate(-90deg)}
-.sectionhead .count{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none}
-#list[hidden]{display:none}
-.item{display:flex;margin-bottom:8px}
-.itemmain{
-  flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;
-  border-radius:var(--radius);padding:12px 14px;
-}
-.itemmain .body{min-width:0;flex:1}
-.itemmain .title{
-  font-weight:600;font-size:15px;line-height:1.3;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.itemmain .meta{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}
-.itemmain .glyph{flex:none;color:var(--muted);font-size:15px}
-.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.badge{
-  font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-  background:var(--surface-high);color:var(--muted);border-radius:6px;padding:3px 6px;
-}
-.badge.resume{background:#243a52;color:#9ccbff}
-.empty{color:var(--muted);text-align:center;padding:40px 20px;font-size:14px;line-height:1.6}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#04121f}
 
-.sheet{
-  position:fixed;inset:0;z-index:60;background:rgba(4,7,10,.72);
-  display:flex;align-items:flex-start;justify-content:center;
-  padding:calc(16px + var(--safe-top)) 16px 16px;
-  opacity:0;pointer-events:none;transition:opacity .18s;
+.tabs{display:flex;gap:10px;padding:14px;padding-bottom:calc(14px + var(--safe-bottom))}
+.tabs button{flex:1;font-size:14px;padding:12px 6px}
+.count{color:var(--muted);font-weight:700}
+
+.listhead{
+  flex:none; display:flex; align-items:center; gap:10px;
+  padding:calc(10px + var(--safe-top)) 14px 10px; border-bottom:1px solid var(--line);
 }
-.sheet.show{opacity:1;pointer-events:auto}
-.sheet .panel{
-  width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);
-  border-radius:18px;padding:16px;
-}
-.sheet .heading{font-size:15px;font-weight:700;margin-bottom:6px}
-.sheet .detail{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.45}
-.sheet .actions{display:flex;flex-direction:column;gap:8px}
+.listhead .title{font-weight:700;font-size:15px;flex:1;min-width:0}
+.small{min-height:42px;padding:9px 13px;font-size:14px;flex:none}
+.searchwrap{flex:none;padding:12px 14px 0}
+.searchwrap[hidden]{display:none}
+.liststatus{flex:none;margin:10px 16px 0}
+.list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 14px calc(30px + var(--safe-bottom))}
+.item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item .body{flex:1;min-width:0}
+.item .name{font-size:15px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.item .sub{margin-top:3px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.empty{padding:28px 4px;color:var(--muted);font-size:14px;text-align:center;line-height:1.5}
+.progress{height:5px;border-radius:3px;background:var(--surface-high);overflow:hidden;margin-top:8px}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.progress.failed span{background:var(--danger)}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="now">
-    <div class="dot" id="dot" title="TV connection"></div>
-    <div class="t" id="nowTitle">Nothing playing</div>
-    <div class="s" id="nowState"></div>
-    <button class="iconbutton" id="settingsToggle" title="Settings" aria-label="Settings">⚙</button>
+<div class="view on" id="homeView">
+  <div class="bar">
+    <span class="dot" id="televisionDot"></span>
+    <span class="brand">tvcast</span>
+    <span class="tvlabel" id="televisionLabel">checking the tv</span>
   </div>
-  <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Position">
-  <div class="times"><span id="posText">0:00</span><span id="durText">0:00</span></div>
-  <div class="controls">
-    <button class="skip" id="back10" aria-label="Back 10 seconds">
-      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>10s
-    </button>
-    <button class="primary playpause" id="playPause" aria-label="Play"></button>
-    <button class="skip" id="forward10" aria-label="Forward 10 seconds">
-      10s<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/></svg>
-    </button>
-  </div>
-  <div class="controls" id="mediaOptions" hidden>
-    <select id="quality" aria-label="Quality" hidden></select>
-    <select id="subtitle" aria-label="Subtitles" hidden></select>
-  </div>
-  <div class="controls">
-    <button class="eject" id="eject" aria-label="Remove from the TV">
-      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 5.5 19 14H5zM5 16.5h14V19H5z"/></svg>Remove from TV
-    </button>
-  </div>
-  <div id="settingsPanel" hidden>
-    <div class="settings">
-      <span class="label">TV</span>
-      <select id="deviceSelect" aria-label="Television"></select>
-      <button class="iconbutton" id="rescan" title="Rescan library" aria-label="Rescan library">⟳</button>
+
+  <div class="scroll">
+    <div class="compose">
+      <input id="linkInput" type="url" inputmode="url" enterkeyhint="send" placeholder="paste a link"
+             autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      <div class="row">
+        <button id="sendButton" class="primary">send to tv</button>
+        <button id="downloadButton">download</button>
+      </div>
+      <p class="status" id="statusLine"></p>
     </div>
-    <div class="settings" id="subtitleDelayRow" hidden>
-      <span class="label">Subtitle delay</span>
-      <button class="iconbutton" id="subtitleEarlier" aria-label="Subtitles half a second earlier">−½s</button>
-      <span class="label" id="subtitleDelayText">0.0s</span>
-      <button class="iconbutton" id="subtitleLater" aria-label="Subtitles half a second later">+½s</button>
+
+    <div class="card" id="card" hidden>
+      <div class="cardtitle" id="cardTitle"></div>
+      <div class="cardmeta" id="cardMeta"></div>
+      <div class="group" id="subtitleGroup">
+        <div class="grouplabel">subtitles</div>
+        <div class="chips" id="subtitleChips"></div>
+      </div>
+      <div class="group" id="qualityGroup">
+        <div class="grouplabel">quality</div>
+        <div class="chips" id="qualityChips"></div>
+      </div>
     </div>
-  </div>
-</header>
 
-<main>
-  <div class="message" id="message">
-    <div class="text" id="messageText"></div>
-    <button class="close" id="messageClose" aria-label="Dismiss">×</button>
-  </div>
-
-  <div class="castrow">
-    <input type="url" id="linkInput" placeholder="Paste a video link…" autocomplete="off" autocorrect="off" spellcheck="false">
-    <div class="castbuttons">
-      <button class="primary" id="sendToTelevision">📺 Send to TV</button>
-      <button id="castLink">▶︎ Watch here</button>
-      <button id="downloadLink">↓ Download</button>
+    <div class="tabs">
+      <button data-list="tv">on the tv <span class="count" id="televisionCount"></span></button>
+      <button data-list="library">library</button>
+      <button data-list="downloads">downloads</button>
     </div>
-  </div>
-
-  <div id="jobs"></div>
-
-  <button class="sectionhead" id="televisionToggle" aria-expanded="true">
-    <span class="chevron">▼</span>
-    <span>On the TV</span>
-    <span class="count" id="televisionCount"></span>
-  </button>
-  <div id="televisionList"></div>
-
-  <button class="sectionhead" id="libraryToggle" aria-expanded="true">
-    <span class="chevron">▼</span>
-    <span>Library</span>
-    <span class="count" id="libraryCount"></span>
-  </button>
-  <div id="list"><div class="empty">Loading library…</div></div>
-</main>
-
-<div class="sheet" id="sheet">
-  <div class="panel">
-    <div class="heading" id="sheetHeading"></div>
-    <div class="detail" id="sheetDetail"></div>
-    <div class="actions" id="sheetActions"></div>
   </div>
 </div>
 
+<div class="view" id="listView">
+  <div class="listhead">
+    <button class="small back" id="backButton">back</button>
+    <span class="title" id="listTitle"></span>
+    <button class="small" id="listAction" hidden></button>
+  </div>
+  <div class="searchwrap" id="searchWrap" hidden>
+    <input id="searchInput" type="search" placeholder="search the library"
+           autocomplete="off" autocapitalize="none" spellcheck="false">
+  </div>
+  <p class="status liststatus" id="listStatus"></p>
+  <div class="list" id="list"></div>
+</div>
+
 <script>
-const STATE_POLL_INTERVAL_MILLISECONDS = 2000;
-const JOBS_POLL_INTERVAL_MILLISECONDS = 2500;
-const SKIP_SECONDS = 10;
-const PLAY_ICON = '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
-const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="currentColor" d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>';
-const NOTICE_HIDE_MILLISECONDS = 4000;
-const MINIMUM_SLIDER_RANGE = 1;
-const BYTES_PER_MEGABYTE = 1024 * 1024;
-const BYTES_PER_GIGABYTE = 1024 * 1024 * 1024;
-const SECONDS_PER_HOUR = 3600;
-const SECONDS_PER_MINUTE = 60;
-const JOB_LINE_LIMIT = 70;
-const PERCENT_DECIMALS = 0;
-const LIBRARY_COLLAPSED_KEY = 'tvcast.libraryCollapsed';
+(function () {
+'use strict';
 
-const listElement = document.getElementById('list');
-const libraryToggleElement = document.getElementById('libraryToggle');
-const libraryCountElement = document.getElementById('libraryCount');
-const settingsToggleElement = document.getElementById('settingsToggle');
-const settingsPanelElement = document.getElementById('settingsPanel');
-const deviceSelectElement = document.getElementById('deviceSelect');
-const dotElement = document.getElementById('dot');
-const nowTitleElement = document.getElementById('nowTitle');
-const nowStateElement = document.getElementById('nowState');
-const seekElement = document.getElementById('seek');
-const qualityElement = document.getElementById('quality');
-const subtitleElement = document.getElementById('subtitle');
-const mediaOptionsElement = document.getElementById('mediaOptions');
-const subtitleDelayRowElement = document.getElementById('subtitleDelayRow');
-const subtitleDelayTextElement = document.getElementById('subtitleDelayText');
-const positionTextElement = document.getElementById('posText');
-const durationTextElement = document.getElementById('durText');
-const playPauseElement = document.getElementById('playPause');
-const back10Element = document.getElementById('back10');
-const forward10Element = document.getElementById('forward10');
-const ejectElement = document.getElementById('eject');
-const linkInputElement = document.getElementById('linkInput');
-const castLinkElement = document.getElementById('castLink');
-const sendToTelevisionElement = document.getElementById('sendToTelevision');
-const televisionToggleElement = document.getElementById('televisionToggle');
-const televisionCountElement = document.getElementById('televisionCount');
-const televisionListElement = document.getElementById('televisionList');
-const downloadLinkElement = document.getElementById('downloadLink');
-const rescanElement = document.getElementById('rescan');
-const jobsElement = document.getElementById('jobs');
-const messageElement = document.getElementById('message');
-const messageTextElement = document.getElementById('messageText');
-const messageCloseElement = document.getElementById('messageClose');
-const sheetElement = document.getElementById('sheet');
-const sheetHeadingElement = document.getElementById('sheetHeading');
-const sheetDetailElement = document.getElementById('sheetDetail');
-const sheetActionsElement = document.getElementById('sheetActions');
+var EMPTY_STRING = '';
+var SUBTITLE_OFF = '';
+var FILE_PREFIX = 'file:';
+var LIST_TELEVISION = 'tv';
+var LIST_LIBRARY = 'library';
+var LIST_DOWNLOADS = 'downloads';
+var REQUEST_TIMEOUT_MILLISECONDS = 15000;
+var SLOW_REQUEST_TIMEOUT_MILLISECONDS = 120000;
+var POLL_INTERVAL_MILLISECONDS = 5000;
+var SEARCH_DEBOUNCE_MILLISECONDS = 250;
+var MILLISECONDS_PER_SECOND = 1000;
+var SECONDS_PER_MINUTE = 60;
+var SECONDS_PER_HOUR = 3600;
+var BYTES_PER_GIGABYTE = 1073741824;
+var BYTES_PER_MEGABYTE = 1048576;
+var COMPLETE_PERCENT = 100;
 
-const transportButtons = [playPauseElement, back10Element, forward10Element, ejectElement];
+var elements = {};
+var nodes = document.querySelectorAll('[id]');
+for (var index = 0; index < nodes.length; index += 1) {
+    elements[nodes[index].id] = nodes[index];
+}
 
-let isDraggingSeek = false;
-let isSwitchingQuality = false;
-let isSwitchingSubtitle = false;
-let pendingSeekTarget = null;
-let busyReason = '';
-let currentDurationSeconds = 0;
-let currentState = 'STOPPED';
-let noticeTimer = null;
+var state = {
+    offer: null,
+    chosenSubtitleId: SUBTITLE_OFF,
+    chosenRenditionId: EMPTY_STRING,
+    busy: false,
+    listKind: EMPTY_STRING,
+    listError: EMPTY_STRING,
+    searchTerm: EMPTY_STRING,
+    catalogue: [],
+    library: [],
+    libraryTotal: 0,
+    downloads: []
+};
 
-function formatTime(totalSeconds) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
-  const hours = Math.floor(safeSeconds / SECONDS_PER_HOUR);
-  const minutes = Math.floor((safeSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-  const seconds = safeSeconds % SECONDS_PER_MINUTE;
-  const pad = (value) => String(value).padStart(2, '0');
-  if (hours > 0) {
-    return hours + ':' + pad(minutes) + ':' + pad(seconds);
-  }
-  return minutes + ':' + pad(seconds);
+function createElement(tagName, className, text) {
+    var element = document.createElement(tagName);
+    if (className !== undefined && className !== EMPTY_STRING) {
+        element.className = className;
+    }
+    if (text !== undefined) {
+        element.textContent = text;
+    }
+    return element;
+}
+
+function createButton(className, text, onTap) {
+    var button = createElement('button', className, text);
+    button.disabled = state.busy;
+    button.addEventListener('click', onTap);
+    return button;
+}
+
+function setStatus(message, tone) {
+    var className = tone === undefined ? 'status' : 'status ' + tone;
+    elements.statusLine.textContent = message;
+    elements.statusLine.className = className;
+    elements.listStatus.textContent = message;
+    elements.listStatus.className = className + ' liststatus';
+}
+
+function formatRuntime(totalSeconds) {
+    if (totalSeconds <= 0) {
+        return EMPTY_STRING;
+    }
+    var hours = Math.floor(totalSeconds / SECONDS_PER_HOUR);
+    var minutes = Math.floor((totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+    if (hours > 0) {
+        return hours + ' h ' + minutes + ' min';
+    }
+    return minutes + ' min';
+}
+
+function formatClock(milliseconds) {
+    var totalSeconds = Math.floor(milliseconds / MILLISECONDS_PER_SECOND);
+    var hours = Math.floor(totalSeconds / SECONDS_PER_HOUR);
+    var minutes = Math.floor((totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+    var seconds = totalSeconds % SECONDS_PER_MINUTE;
+    var padded = function (value) {
+        return value < 10 ? '0' + value : String(value);
+    };
+    if (hours > 0) {
+        return hours + ':' + padded(minutes) + ':' + padded(seconds);
+    }
+    return minutes + ':' + padded(seconds);
 }
 
 function formatSize(bytes) {
-  const gigabytes = bytes / BYTES_PER_GIGABYTE;
-  if (gigabytes >= 1) {
-    return gigabytes.toFixed(1) + ' GB';
-  }
-  return Math.round(bytes / BYTES_PER_MEGABYTE) + ' MB';
-}
-
-function showNotice(text) {
-  clearTimeout(noticeTimer);
-  messageTextElement.textContent = text;
-  messageElement.classList.remove('error');
-  messageElement.classList.add('show');
-  noticeTimer = setTimeout(hideMessage, NOTICE_HIDE_MILLISECONDS);
-}
-
-function showFailure(text) {
-  clearTimeout(noticeTimer);
-  messageTextElement.textContent = text;
-  messageElement.classList.add('error', 'show');
-}
-
-function hideMessage() {
-  clearTimeout(noticeTimer);
-  messageElement.classList.remove('show');
-}
-
-messageCloseElement.addEventListener('click', hideMessage);
-
-settingsToggleElement.addEventListener('click', () => {
-  settingsPanelElement.hidden = settingsPanelElement.hidden === false;
-});
-
-function setLibraryCollapsed(collapsed) {
-  listElement.hidden = collapsed;
-  libraryToggleElement.classList.toggle('collapsed', collapsed);
-  libraryToggleElement.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  try {
-    localStorage.setItem(LIBRARY_COLLAPSED_KEY, collapsed ? '1' : '0');
-  } catch (error) {
-    void error;
-  }
-}
-
-libraryToggleElement.addEventListener('click', () => {
-  setLibraryCollapsed(listElement.hidden === false);
-});
-
-function openSheet(heading, detail, actions) {
-  sheetHeadingElement.textContent = heading;
-  sheetDetailElement.textContent = detail;
-  sheetActionsElement.innerHTML = '';
-  for (const action of actions) {
-    const button = document.createElement('button');
-    button.textContent = action.label;
-    if (action.primary) {
-      button.className = 'primary';
+    if (bytes >= BYTES_PER_GIGABYTE) {
+        return (bytes / BYTES_PER_GIGABYTE).toFixed(1) + ' GB';
     }
-    button.addEventListener('click', () => {
-      closeSheet();
-      action.run();
-    });
-    sheetActionsElement.appendChild(button);
-  }
-  sheetElement.classList.add('show');
-}
-
-function closeSheet() {
-  sheetElement.classList.remove('show');
-}
-
-sheetElement.addEventListener('click', (event) => {
-  if (event.target === sheetElement) {
-    closeSheet();
-  }
-});
-
-function setBusy(reason) {
-  busyReason = reason;
-  const isBusy = reason !== '';
-  for (const button of transportButtons) {
-    button.disabled = isBusy;
-  }
-  qualityElement.disabled = isBusy;
-  subtitleElement.disabled = isBusy;
-  seekElement.disabled = isBusy;
-  castLinkElement.disabled = isBusy;
-  nowStateElement.classList.toggle('busy', isBusy);
-  if (isBusy) {
-    nowStateElement.textContent = reason;
-  }
+    return Math.round(bytes / BYTES_PER_MEGABYTE) + ' MB';
 }
 
 async function callApi(pathName, options) {
-  const response = await fetch(pathName, options);
-  const payload = await response.json().catch(() => ({}));
-  if (response.ok === false) {
-    throw new Error(payload.error || ('HTTP ' + response.status));
-  }
-  return payload;
+    var settings = options || {};
+    var timeout = settings.timeout || REQUEST_TIMEOUT_MILLISECONDS;
+    var request = {
+        method: settings.method || 'GET',
+        signal: AbortSignal.timeout(timeout)
+    };
+    if (settings.body !== undefined) {
+        request.headers = { 'Content-Type': 'application/json' };
+        request.body = JSON.stringify(settings.body);
+    }
+    var response = null;
+    try {
+        response = await fetch(pathName, request);
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            throw new Error('the pc took too long to answer, it may still be working');
+        }
+        throw new Error('cannot reach the pc, check it is awake and on the same wifi');
+    }
+    var text = await response.text();
+    var payload = null;
+    try {
+        payload = JSON.parse(text);
+    } catch (error) {
+        throw new Error('the pc answered with something unreadable (HTTP ' + response.status + ')');
+    }
+    if (response.ok === false || payload.ok === false) {
+        throw new Error(payload.error || ('the pc answered HTTP ' + response.status));
+    }
+    return payload;
 }
 
-function postJson(pathName, body) {
-  return callApi(pathName, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+function applyBusyState() {
+    var buttons = document.querySelectorAll('button');
+    for (var buttonIndex = 0; buttonIndex < buttons.length; buttonIndex += 1) {
+        var button = buttons[buttonIndex];
+        if (button.classList.contains('back') === false) {
+            button.disabled = state.busy;
+        }
+    }
+    elements.sendButton.textContent = state.busy ? 'working' : 'send to tv';
 }
 
-async function runExclusive(reason, work) {
-  if (busyReason !== '') {
-    return;
-  }
-  setBusy(reason);
-  try {
-    await work();
-  } catch (error) {
-    showFailure(error.message);
-  }
-  setBusy('');
+async function runExclusive(busyMessage, work) {
+    if (state.busy) {
+        return;
+    }
+    state.busy = true;
+    setStatus(busyMessage, 'busy');
+    applyBusyState();
+    try {
+        await work();
+    } catch (error) {
+        setStatus(error.message, 'bad');
+    } finally {
+        state.busy = false;
+        applyBusyState();
+    }
 }
 
-function buildBadges(item) {
-  const badges = [];
-  if (item.resumeSeconds > 0) {
-    badges.push('<span class="badge resume">resume ' + formatTime(item.resumeSeconds) + '</span>');
-  }
-  if (item.hasSubtitle) {
-    badges.push('<span class="badge">sub</span>');
-  }
-  if (badges.length === 0) {
-    return '';
-  }
-  return '<div class="badges">' + badges.join('') + '</div>';
+function readLink() {
+    var link = elements.linkInput.value.trim();
+    if (/^https?:\/\//i.test(link) === false) {
+        setStatus('that needs to be a link starting with http', 'bad');
+        return EMPTY_STRING;
+    }
+    return link;
 }
 
-function buildItemRow(item) {
-  const row = document.createElement('div');
-  row.className = 'item';
-  const mainButton = document.createElement('button');
-  mainButton.className = 'itemmain';
-  mainButton.innerHTML = '<div class="body"><div class="title">' + item.title + '</div>'
-    + '<div class="meta">' + item.folder + ' · ' + formatSize(item.sizeBytes) + '</div>'
-    + buildBadges(item) + '</div><div class="glyph">▶︎</div>';
-  mainButton.addEventListener('click', () => askThenPlay(item));
-  row.appendChild(mainButton);
-  return row;
+function reportDelivery(result) {
+    if (result.delivered) {
+        setStatus('playing on the tv: ' + result.title, 'good');
+    } else {
+        setStatus(result.reason + '. it is queued, the tv will pick it up when the app opens', 'warn');
+    }
+}
+
+async function deliverOffer() {
+    var result = await callApi('/api/send', {
+        method: 'POST',
+        timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
+        body: {
+            offerId: state.offer.offerId,
+            subtitleId: state.chosenSubtitleId,
+            renditionId: state.chosenRenditionId
+        }
+    });
+    reportDelivery(result);
+    if (result.subtitleOffsetMeasured === false && state.chosenSubtitleId !== SUBTITLE_OFF) {
+        setStatus(elements.statusLine.textContent
+            + '. checking the subtitle timing against the audio, it self corrects in a few minutes',
+            result.delivered ? 'good' : 'warn');
+    }
+    await loadCatalogue();
+}
+
+function sendPastedLink() {
+    var link = readLink();
+    if (link === EMPTY_STRING) {
+        return;
+    }
+    runExclusive('looking that link up, this takes a moment', async function () {
+        var offer = await callApi('/api/resolve', {
+            method: 'POST',
+            timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
+            body: { url: link }
+        });
+        state.offer = offer;
+        state.chosenSubtitleId = offer.subtitles.length > 0 ? offer.subtitles[0].id : SUBTITLE_OFF;
+        state.chosenRenditionId = offer.selectedRenditionId || EMPTY_STRING;
+        renderCard();
+        setStatus('sending ' + offer.title + ' to the tv', 'busy');
+        await deliverOffer();
+    });
+}
+
+function chooseSubtitle(subtitleId) {
+    if (state.offer === null || state.chosenSubtitleId === subtitleId) {
+        return;
+    }
+    state.chosenSubtitleId = subtitleId;
+    renderCard();
+    runExclusive('switching subtitles on the tv', deliverOffer);
+}
+
+function chooseRendition(renditionId) {
+    if (state.offer === null || state.chosenRenditionId === renditionId) {
+        return;
+    }
+    state.chosenRenditionId = renditionId;
+    renderCard();
+    runExclusive('switching quality on the tv', deliverOffer);
+}
+
+function buildChip(text, isSelected, onTap) {
+    return createButton(isSelected ? 'chip on' : 'chip', text, onTap);
+}
+
+function renderCard() {
+    var offer = state.offer;
+    if (offer === null) {
+        elements.card.hidden = true;
+        return;
+    }
+    elements.card.hidden = false;
+    elements.cardTitle.textContent = offer.title;
+
+    var parts = [];
+    if (offer.quality !== EMPTY_STRING) {
+        parts.push(offer.quality);
+    }
+    if (offer.provider !== EMPTY_STRING) {
+        parts.push(offer.provider);
+    }
+    var runtime = formatRuntime(offer.durationSeconds);
+    if (runtime !== EMPTY_STRING) {
+        parts.push(runtime);
+    }
+    if (offer.resumeMilliseconds > 0) {
+        parts.push('resumes at ' + formatClock(offer.resumeMilliseconds));
+    }
+    elements.cardMeta.textContent = parts.join(' · ');
+
+    var subtitleChoices = [{ id: SUBTITLE_OFF, language: 'off' }].concat(offer.subtitles);
+    var subtitleChips = subtitleChoices.map(function (track) {
+        return buildChip(track.language, track.id === state.chosenSubtitleId, function () {
+            chooseSubtitle(track.id);
+        });
+    });
+    elements.subtitleChips.replaceChildren.apply(elements.subtitleChips, subtitleChips);
+
+    elements.qualityGroup.hidden = offer.renditions.length < 2;
+    var qualityChips = offer.renditions.map(function (rendition) {
+        return buildChip(rendition.label, rendition.id === state.chosenRenditionId, function () {
+            chooseRendition(rendition.id);
+        });
+    });
+    elements.qualityChips.replaceChildren.apply(elements.qualityChips, qualityChips);
+}
+
+function sendExisting(publicationId, title) {
+    runExclusive('sending ' + title + ' to the tv', async function () {
+        var result = await callApi('/api/send', {
+            method: 'POST',
+            timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
+            body: { publicationId: publicationId }
+        });
+        reportDelivery(result);
+    });
+}
+
+function removeItem(publicationId) {
+    runExclusive('removing that from the tv list', async function () {
+        await callApi('/api/catalogue/' + publicationId, { method: 'DELETE' });
+        await loadCatalogue();
+        setStatus('removed', 'good');
+    });
+}
+
+function startDownload() {
+    var link = readLink();
+    if (link === EMPTY_STRING) {
+        return;
+    }
+    runExclusive('starting the download', async function () {
+        await callApi('/api/download', { method: 'POST', body: { url: link } });
+        setStatus('downloading, the progress is in the downloads list', 'good');
+        await loadDownloads();
+    });
+}
+
+function rescanLibrary() {
+    runExclusive('scanning the library', async function () {
+        var result = await callApi('/api/scan', {
+            method: 'POST',
+            timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS
+        });
+        await loadLibrary();
+        setStatus(result.count + ' videos in the library', 'good');
+    });
+}
+
+function isPublished(item) {
+    return item.id.indexOf(FILE_PREFIX) !== 0;
+}
+
+async function loadCatalogue() {
+    var payload = await callApi('/api/catalogue');
+    state.catalogue = (payload.items || []).filter(isPublished);
+    elements.televisionCount.textContent = state.catalogue.length === 0
+        ? EMPTY_STRING
+        : String(state.catalogue.length);
+    if (state.listKind === LIST_TELEVISION) {
+        renderList();
+    }
 }
 
 async function loadLibrary() {
-  try {
-    const payload = await callApi('/api/library');
-    libraryCountElement.textContent = payload.items.length;
-    if (payload.items.length === 0) {
-      listElement.innerHTML = '<div class="empty">No videos yet.<br>Add folders to config.json and press ⟳ in settings.</div>';
-    } else {
-      listElement.innerHTML = '';
-      for (const item of payload.items) {
-        listElement.appendChild(buildItemRow(item));
-      }
+    var query = state.searchTerm === EMPTY_STRING
+        ? EMPTY_STRING
+        : '?q=' + encodeURIComponent(state.searchTerm);
+    var payload = await callApi('/api/library' + query);
+    state.library = payload.items || [];
+    state.libraryTotal = payload.total || 0;
+    if (state.listKind === LIST_LIBRARY) {
+        renderList();
     }
-  } catch (error) {
-    libraryCountElement.textContent = '';
-    listElement.innerHTML = '<div class="empty">Cannot reach the PC.<br>Is the tvcast server running?</div>';
-  }
 }
 
-function askThenPlay(item) {
-  if (item.resumeSeconds > 0) {
-    openSheet(item.title, 'You stopped at ' + formatTime(item.resumeSeconds) + '.', [
-      { label: 'Resume at ' + formatTime(item.resumeSeconds), primary: true, run: () => playItem(item, item.resumeSeconds) },
-      { label: 'Start from the beginning', run: () => playItem(item, 0) }
-    ]);
-  } else {
-    playItem(item, 0);
-  }
-}
-
-function playItem(item, startSeconds) {
-  runExclusive('sending…', async () => {
-    await postJson('/api/play', { itemId: item.id, startSeconds });
-    showNotice('▶︎ ' + item.title);
-  });
-}
-
-function sendControl(action, value) {
-  return postJson('/api/control', { action, value });
-}
-
-function requestSeek(targetSeconds) {
-  const clamped = Math.max(0, Math.min(currentDurationSeconds, Math.round(targetSeconds)));
-  pendingSeekTarget = clamped;
-  seekElement.value = clamped;
-  positionTextElement.textContent = formatTime(clamped);
-  runExclusive('jumping…', async () => {
-    await sendControl('seek', clamped);
-  }).then(() => {
-    pendingSeekTarget = null;
-  });
-}
-
-function updateSeekDisplay(playback) {
-  currentDurationSeconds = playback.durationSeconds;
-  seekElement.max = Math.max(MINIMUM_SLIDER_RANGE, playback.durationSeconds);
-  durationTextElement.textContent = formatTime(playback.durationSeconds);
-
-  if (isDraggingSeek) {
-    return;
-  }
-  if (pendingSeekTarget !== null) {
-    seekElement.value = pendingSeekTarget;
-    positionTextElement.textContent = formatTime(pendingSeekTarget);
-    return;
-  }
-  seekElement.value = playback.positionSeconds;
-  positionTextElement.textContent = formatTime(playback.positionSeconds);
-}
-
-function renderPlayPause(isPlaying) {
-  const label = isPlaying ? 'Pause' : 'Play';
-  const icon = isPlaying ? PAUSE_ICON : PLAY_ICON;
-  if (playPauseElement.dataset.mode !== label) {
-    playPauseElement.innerHTML = icon + label;
-    playPauseElement.dataset.mode = label;
-    playPauseElement.setAttribute('aria-label', label);
-  }
-}
-
-function describeState(state) {
-  if (state === 'PLAYING') {
-    return 'playing';
-  } else if (state === 'PAUSED_PLAYBACK') {
-    return 'paused';
-  } else if (state === 'TRANSITIONING') {
-    return 'loading…';
-  } else if (state === 'UNREACHABLE' || state === 'NO_DEVICE') {
-    return 'TV offline';
-  } else {
-    return '';
-  }
-}
-
-async function refreshState() {
-  try {
-    const state = await callApi('/api/state');
-
-    if (deviceSelectElement.options.length !== state.devices.length) {
-      deviceSelectElement.innerHTML = '';
-      for (const device of state.devices) {
-        const option = document.createElement('option');
-        option.value = device.id;
-        option.textContent = device.name;
-        deviceSelectElement.appendChild(option);
-      }
+async function loadDownloads() {
+    var payload = await callApi('/api/downloads');
+    state.downloads = payload.jobs || [];
+    if (state.listKind === LIST_DOWNLOADS) {
+        renderList();
     }
-    if (state.selectedDeviceId) {
-      deviceSelectElement.value = state.selectedDeviceId;
+}
+
+async function loadTelevisionStatus() {
+    var status = await callApi('/api/tv/status');
+    var located = status.address !== EMPTY_STRING;
+    elements.televisionDot.className = located ? 'dot on' : 'dot off';
+    var label = located ? status.address : 'tv not located yet';
+    if (status.hasPending) {
+        label = label + ' · 1 waiting';
     }
+    elements.televisionLabel.textContent = label;
+}
 
-    const playback = state.playback;
-    currentState = playback.state;
-    const isLive = playback.state === 'PLAYING' || playback.state === 'PAUSED_PLAYBACK' || playback.state === 'TRANSITIONING';
-    const isConnected = state.devices.length > 0 && playback.state !== 'UNREACHABLE' && playback.state !== 'NO_DEVICE';
-    dotElement.classList.toggle('on', isConnected);
-    dotElement.title = isConnected ? 'Connected to ' + (state.devices[0] || {}).name : 'No TV connected';
-
-    nowTitleElement.textContent = playback.title || (isLive ? 'Playing on TV' : 'Nothing playing');
-    if (busyReason === '') {
-      nowStateElement.textContent = describeState(playback.state);
+function describePublication(item) {
+    var parts = [];
+    if (item.quality !== EMPTY_STRING) {
+        parts.push(item.quality);
     }
-    renderPlayPause(playback.state === 'PLAYING');
-
-    updateSeekDisplay(playback);
-    renderQualityOptions(playback.renditions, playback.selectedRenditionId);
-    renderSubtitleOptions(playback.subtitleTracks, playback.selectedSubtitleId, playback.subtitleOffsetSeconds);
-    mediaOptionsElement.hidden = qualityElement.hidden && subtitleElement.hidden;
-  } catch (error) {
-    dotElement.classList.remove('on');
-    dotElement.title = 'Server offline';
-    if (busyReason === '') {
-      nowStateElement.textContent = 'server offline';
+    if (item.provider !== EMPTY_STRING) {
+        parts.push(item.provider);
     }
-  }
+    var chosen = (item.subtitles || []).filter(function (track) {
+        return track.id === item.selectedSubtitleId;
+    })[0];
+    parts.push(chosen === undefined ? 'no subtitles' : chosen.language);
+    if (item.subtitleOffsetMilliseconds !== 0) {
+        parts.push('subs ' + (item.subtitleOffsetMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1) + ' s');
+    }
+    return parts.join(' · ');
 }
 
-function renderQualityOptions(renditions, selectedRenditionId) {
-  if (Array.isArray(renditions) === false || renditions.length === 0) {
-    qualityElement.hidden = true;
-    qualityElement.dataset.signature = '';
-    return;
-  }
-  const signature = renditions.map((entry) => entry.identifier).join('|');
-  if (qualityElement.dataset.signature !== signature) {
-    qualityElement.innerHTML = renditions
-      .map((entry) => '<option value="' + entry.identifier + '">' + entry.displayLabel + '</option>')
-      .join('');
-    qualityElement.dataset.signature = signature;
-  }
-  if (isSwitchingQuality === false) {
-    qualityElement.value = selectedRenditionId || '';
-  }
-  qualityElement.hidden = false;
+function buildRow(name, detail, actions) {
+    var row = createElement('div', 'item');
+    var body = createElement('div', 'body');
+    body.appendChild(createElement('div', 'name', name));
+    if (detail !== EMPTY_STRING) {
+        body.appendChild(createElement('div', 'sub', detail));
+    }
+    row.appendChild(body);
+    for (var actionIndex = 0; actionIndex < actions.length; actionIndex += 1) {
+        row.appendChild(actions[actionIndex]);
+    }
+    return row;
 }
 
-function renderSubtitleOptions(tracks, selectedSubtitleId, offsetSeconds) {
-  if (Array.isArray(tracks) === false || tracks.length === 0) {
-    subtitleElement.hidden = true;
-    subtitleElement.dataset.signature = '';
-    subtitleDelayRowElement.hidden = true;
-    return;
-  }
-  const signature = tracks.map((track) => track.identifier).join('|');
-  if (subtitleElement.dataset.signature !== signature) {
-    const options = ['<option value="">Subtitles off</option>']
-      .concat(tracks.map((track) => '<option value="' + track.identifier + '">' + track.language + '</option>'));
-    subtitleElement.innerHTML = options.join('');
-    subtitleElement.dataset.signature = signature;
-  }
-  if (isSwitchingSubtitle === false) {
-    subtitleElement.value = selectedSubtitleId || '';
-  }
-  subtitleElement.hidden = false;
-  const hasSubtitle = (selectedSubtitleId || '') !== '';
-  subtitleDelayRowElement.hidden = hasSubtitle === false;
-  const delay = Number(offsetSeconds || 0);
-  subtitleDelayTextElement.textContent = (delay > 0 ? '+' : '') + delay.toFixed(1) + 's';
-}
-
-subtitleElement.addEventListener('change', () => {
-  const chosen = subtitleElement.options[subtitleElement.selectedIndex];
-  const chosenId = subtitleElement.value;
-  isSwitchingSubtitle = true;
-  runExclusive(chosenId === '' ? 'removing subtitles…' : 'burning in ' + chosen.textContent + '…', async () => {
-    await postJson('/api/cast-subtitle', { subtitleId: chosenId });
-    showNotice(chosenId === '' ? 'Subtitles off' : chosen.textContent + ' subtitles on');
-  }).then(() => {
-    isSwitchingSubtitle = false;
-  });
-});
-
-function nudgeSubtitle(deltaSeconds) {
-  runExclusive('shifting subtitles…', async () => {
-    const result = await postJson('/api/subtitle-offset', { deltaSeconds });
-    const delay = Number(result.subtitleOffsetSeconds || 0);
-    showNotice('Subtitle delay ' + (delay > 0 ? '+' : '') + delay.toFixed(1) + 's');
-  });
-}
-
-document.getElementById('subtitleEarlier').addEventListener('click', () => nudgeSubtitle(-0.5));
-document.getElementById('subtitleLater').addEventListener('click', () => nudgeSubtitle(0.5));
-
-qualityElement.addEventListener('change', () => {
-  const chosen = qualityElement.options[qualityElement.selectedIndex];
-  const chosenId = qualityElement.value;
-  isSwitchingQuality = true;
-  runExclusive('switching to ' + chosen.textContent + '…', async () => {
-    const result = await postJson('/api/cast-quality', { renditionId: chosenId });
-    showNotice('Now at ' + result.quality);
-  }).then(() => {
-    isSwitchingQuality = false;
-  });
-});
-
-rescanElement.addEventListener('click', () => {
-  runExclusive('rescanning…', async () => {
-    const result = await callApi('/api/scan', { method: 'POST' });
-    showNotice(result.count + ' videos found');
-    await loadLibrary();
-  });
-});
-
-deviceSelectElement.addEventListener('change', () => {
-  runExclusive('switching TV…', async () => {
-    await postJson('/api/select-device', { deviceId: deviceSelectElement.value });
-    showNotice('TV switched');
-  });
-});
-
-playPauseElement.addEventListener('click', () => {
-  const action = currentState === 'PLAYING' ? 'pause' : 'resume';
-  runExclusive(action === 'pause' ? 'pausing…' : 'resuming…', async () => {
-    await sendControl(action);
-  });
-});
-
-ejectElement.addEventListener('click', () => {
-  runExclusive('removing…', async () => {
-    await sendControl('stop');
-    pendingSeekTarget = null;
-    showNotice('Removed from the TV');
-  });
-});
-
-back10Element.addEventListener('click', () => {
-  requestSeek(Number(seekElement.value) - SKIP_SECONDS);
-});
-
-forward10Element.addEventListener('click', () => {
-  requestSeek(Number(seekElement.value) + SKIP_SECONDS);
-});
-
-seekElement.addEventListener('input', () => {
-  isDraggingSeek = true;
-  positionTextElement.textContent = formatTime(Number(seekElement.value));
-});
-
-seekElement.addEventListener('change', () => {
-  isDraggingSeek = false;
-  requestSeek(Number(seekElement.value));
-});
-
-castLinkElement.addEventListener('click', () => {
-  const link = linkInputElement.value.trim();
-  if (link === '') {
-    showNotice('Paste a link first');
-    return;
-  }
-  runExclusive('resolving…', async () => {
-    const result = await postJson('/api/cast-url', { url: link });
-    const quality = result.quality ? ' · ' + result.quality : '';
-    showNotice('▶︎ ' + result.title + quality);
-    linkInputElement.value = '';
-  });
-});
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function describeTelevisionResult(result) {
-  const parts = [];
-  if (result.quality) {
-    parts.push(result.quality);
-  }
-  if (result.provider) {
-    parts.push(result.provider);
-  }
-  if (result.burningSubtitles) {
-    parts.push('subtitles burned in');
-  }
-  return parts.length === 0 ? '' : ' · ' + parts.join(' · ');
-}
-
-async function sendLinkToTelevision(link, subtitleId, renditionId) {
-  const result = await postJson('/api/send-to-tv', {
-    url: link,
-    subtitleId: subtitleId || '',
-    renditionId: renditionId || ''
-  });
-  showNotice('📺 ' + result.title + describeTelevisionResult(result));
-  await loadTelevisionLibrary();
-  return result;
-}
-
-function offerTelevisionOptions(link, result) {
-  const tracks = result.subtitleTracks || [];
-  const renditions = result.renditions || [];
-  if (tracks.length === 0 && renditions.length <= 1) {
-    return;
-  }
-  sheetHeadingElement.textContent = result.title;
-  sheetDetailElement.textContent = 'Now on the TV. Open Media Center on the TV to play it. '
-    + 'Pick a subtitle or quality below to send it again with that choice.';
-  const actions = [];
-  for (const track of tracks) {
-    actions.push({ label: 'Subtitles: ' + track.language, subtitleId: track.identifier, renditionId: '' });
-  }
-  for (const rendition of renditions) {
-    actions.push({
-      label: 'Quality: ' + rendition.displayLabel + ' (' + rendition.provider + ')',
-      subtitleId: '',
-      renditionId: rendition.identifier
+function renderTelevisionList() {
+    if (state.catalogue.length === 0) {
+        return [createElement('div', 'empty', 'nothing sent yet, paste a link on the first screen')];
+    }
+    return state.catalogue.map(function (item) {
+        return buildRow(item.title, describePublication(item), [
+            createButton('small', 'play', function () {
+                sendExisting(item.id, item.title);
+            }),
+            createButton('small', 'remove', function () {
+                removeItem(item.id);
+            })
+        ]);
     });
-  }
-  sheetActionsElement.innerHTML = '';
-  for (const action of actions) {
-    const button = document.createElement('button');
-    button.textContent = action.label;
-    button.addEventListener('click', () => {
-      closeSheet();
-      runExclusive('sending…', async () => {
-        await sendLinkToTelevision(link, action.subtitleId, action.renditionId);
-      });
+}
+
+function renderLibraryList() {
+    if (state.library.length === 0) {
+        var message = state.searchTerm === EMPTY_STRING
+            ? 'the library is empty, try a scan'
+            : 'nothing matched that search';
+        return [createElement('div', 'empty', message)];
+    }
+    return state.library.map(function (item) {
+        var detail = [item.folder, formatSize(item.sizeBytes)];
+        detail.push(item.hasSubtitle ? 'subtitles' : 'no subtitles');
+        return buildRow(item.title, detail.join(' · '), [
+            createButton('small', 'play', function () {
+                sendExisting(FILE_PREFIX + item.id, item.title);
+            })
+        ]);
     });
-    sheetActionsElement.appendChild(button);
-  }
-  const dismiss = document.createElement('button');
-  dismiss.textContent = 'Done';
-  dismiss.addEventListener('click', closeSheet);
-  sheetActionsElement.appendChild(dismiss);
-  sheetElement.classList.add('show');
 }
 
-sendToTelevisionElement.addEventListener('click', () => {
-  const link = linkInputElement.value.trim();
-  if (link === '') {
-    showNotice('Paste a link first');
-    return;
-  }
-  runExclusive('sending to the TV…', async () => {
-    const result = await sendLinkToTelevision(link, '', '');
-    linkInputElement.value = '';
-    offerTelevisionOptions(link, result);
-  });
-});
-
-async function loadTelevisionLibrary() {
-  try {
-    const payload = await callApi('/api/tv-library');
-    const items = payload.items || [];
-    televisionCountElement.textContent = items.length === 0 ? '' : String(items.length);
-    if (items.length === 0) {
-      televisionListElement.innerHTML = '<div class="empty">Nothing sent yet. '
-        + 'Send a link here, then open Media Center on the TV and pick it with the remote.</div>';
-    } else {
-      televisionListElement.innerHTML = items.map((item) => {
-        const badges = [];
-        if (item.durationSeconds > 0) {
-          badges.push('<span class="badge">' + formatTime(item.durationSeconds) + '</span>');
-        }
-        if (item.burningSubtitles) {
-          badges.push('<span class="badge">subtitles</span>');
-        }
-        return '<div class="item"><div class="itemmain"><div class="body">'
-          + '<div class="title">' + escapeHtml(item.title) + '</div>'
-          + '<div class="badges">' + badges.join('') + '</div>'
-          + '</div></div></div>';
-      }).join('');
+function renderDownloadsList() {
+    if (state.downloads.length === 0) {
+        return [createElement('div', 'empty', 'no downloads yet')];
     }
-  } catch (error) {
-    void error;
-  }
+    return state.downloads.slice().reverse().map(function (job) {
+        var row = createElement('div', 'item');
+        var body = createElement('div', 'body');
+        body.appendChild(createElement('div', 'name', job.url));
+        var stateText = job.line;
+        if (job.failed) {
+            stateText = 'failed: ' + job.line;
+        } else if (job.done) {
+            stateText = 'finished';
+        }
+        body.appendChild(createElement('div', 'sub', job.percent + '% · ' + stateText));
+        var bar = createElement('div', job.failed ? 'progress failed' : 'progress');
+        var fill = createElement('span');
+        fill.style.width = (job.done && job.failed === false ? COMPLETE_PERCENT : job.percent) + '%';
+        bar.appendChild(fill);
+        body.appendChild(bar);
+        row.appendChild(body);
+        return row;
+    });
 }
 
-function setTelevisionCollapsed(collapsed) {
-  televisionListElement.hidden = collapsed;
-  televisionToggleElement.classList.toggle('collapsed', collapsed);
-  televisionToggleElement.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-}
-
-televisionToggleElement.addEventListener('click', () => {
-  setTelevisionCollapsed(televisionListElement.hidden === false);
-});
-
-downloadLinkElement.addEventListener('click', async () => {
-  const link = linkInputElement.value.trim();
-  if (link === '') {
-    showNotice('Paste a link first');
-    return;
-  }
-  downloadLinkElement.disabled = true;
-  try {
-    await postJson('/api/download', { url: link });
-    showNotice('Download started · saving to the PC');
-    linkInputElement.value = '';
-    refreshJobs();
-  } catch (error) {
-    showFailure(error.message);
-  }
-  downloadLinkElement.disabled = false;
-});
-
-async function refreshJobs() {
-  try {
-    const payload = await callApi('/api/jobs');
-    const active = payload.jobs.filter((job) => job.done === false || job.failed);
-    if (active.length === 0) {
-      jobsElement.innerHTML = '';
+function renderList() {
+    var children = [];
+    if (state.listError !== EMPTY_STRING) {
+        children = [createElement('div', 'empty', state.listError)];
+    } else if (state.listKind === LIST_TELEVISION) {
+        children = renderTelevisionList();
+    } else if (state.listKind === LIST_LIBRARY) {
+        children = renderLibraryList();
     } else {
-      jobsElement.innerHTML = active.map((job) => {
-        const label = job.failed ? 'failed' : (job.done ? 'done' : job.percent.toFixed(PERCENT_DECIMALS) + '%');
-        const className = job.failed ? 'job failed' : 'job';
-        return '<div class="' + className + '">↓ ' + label + ' · ' + (job.line || '').slice(0, JOB_LINE_LIMIT)
-          + '<div class="bar"><i style="width:' + (job.percent || 0) + '%"></i></div></div>';
-      }).join('');
+        children = renderDownloadsList();
     }
-  } catch (error) {
-    void error;
-  }
+    elements.list.replaceChildren.apply(elements.list, children);
 }
 
-function restoreLibraryState() {
-  let collapsed = false;
-  try {
-    collapsed = localStorage.getItem(LIBRARY_COLLAPSED_KEY) === '1';
-  } catch (error) {
-    void error;
-  }
-  setLibraryCollapsed(collapsed);
+async function refreshCurrentList() {
+    if (state.busy) {
+        return;
+    }
+    try {
+        if (state.listKind === LIST_TELEVISION) {
+            await loadCatalogue();
+        } else if (state.listKind === LIST_LIBRARY) {
+            await loadLibrary();
+        } else if (state.listKind === LIST_DOWNLOADS) {
+            await loadDownloads();
+        }
+        state.listError = EMPTY_STRING;
+    } catch (error) {
+        state.listError = error.message;
+    }
+    renderList();
 }
 
-const initialLink = new URLSearchParams(location.search).get('cast');
-if (initialLink) {
-  linkInputElement.value = initialLink;
+function openList(kind) {
+    state.listKind = kind;
+    state.listError = EMPTY_STRING;
+    elements.homeView.classList.remove('on');
+    elements.listView.classList.add('on');
+    elements.searchWrap.hidden = kind !== LIST_LIBRARY;
+    elements.listAction.hidden = kind !== LIST_LIBRARY;
+    elements.listAction.textContent = 'scan';
+    if (kind === LIST_TELEVISION) {
+        elements.listTitle.textContent = 'on the tv';
+    } else if (kind === LIST_LIBRARY) {
+        elements.listTitle.textContent = 'library';
+    } else {
+        elements.listTitle.textContent = 'downloads';
+    }
+    renderList();
+    refreshCurrentList();
 }
 
-renderPlayPause(false);
-restoreLibraryState();
-loadLibrary();
-loadTelevisionLibrary();
-refreshState();
-refreshJobs();
-setInterval(refreshState, STATE_POLL_INTERVAL_MILLISECONDS);
-setInterval(refreshJobs, JOBS_POLL_INTERVAL_MILLISECONDS);
+function closeList() {
+    state.listKind = EMPTY_STRING;
+    elements.listView.classList.remove('on');
+    elements.homeView.classList.add('on');
+}
+
+elements.sendButton.addEventListener('click', sendPastedLink);
+elements.downloadButton.addEventListener('click', startDownload);
+elements.backButton.addEventListener('click', closeList);
+elements.listAction.addEventListener('click', rescanLibrary);
+
+elements.linkInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        elements.linkInput.blur();
+        sendPastedLink();
+    }
+});
+
+var tabs = document.querySelectorAll('[data-list]');
+for (var tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
+    tabs[tabIndex].addEventListener('click', function (event) {
+        openList(event.currentTarget.getAttribute('data-list'));
+    });
+}
+
+var searchTimer = 0;
+elements.searchInput.addEventListener('input', function () {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(function () {
+        state.searchTerm = elements.searchInput.value.trim();
+        refreshCurrentList();
+    }, SEARCH_DEBOUNCE_MILLISECONDS);
+});
+
+window.setInterval(function () {
+    if (document.hidden || state.busy) {
+        return;
+    }
+    loadTelevisionStatus().catch(function () {
+        elements.televisionDot.className = 'dot';
+        elements.televisionLabel.textContent = 'pc not reachable';
+    });
+    if (state.listKind === LIST_DOWNLOADS) {
+        refreshCurrentList();
+    }
+}, POLL_INTERVAL_MILLISECONDS);
+
+loadTelevisionStatus().catch(function () {
+    elements.televisionDot.className = 'dot';
+    elements.televisionLabel.textContent = 'pc not reachable';
+});
+loadCatalogue().catch(function () {
+    return null;
+});
+}());
 </script>
 </body>
 </html>

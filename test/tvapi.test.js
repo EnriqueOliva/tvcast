@@ -503,3 +503,166 @@ test('an unknown publication is a clean 404 rather than a crash', async () => {
         await upstream.close();
     }
 });
+
+function startFakeTelevision() {
+    const pushed = [];
+    const server = http.createServer((request, response) => {
+        const chunks = [];
+        request.on('data', (chunk) => chunks.push(chunk));
+        request.on('end', () => {
+            if (request.url === '/ping') {
+                response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"tvcast"}');
+            } else if (request.url === '/play') {
+                pushed.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+                response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}');
+            } else {
+                response.writeHead(404).end();
+            }
+        });
+    });
+    return new Promise((resolveServer) => {
+        server.listen(8788, '127.0.0.1', () => {
+            resolveServer({
+                pushed,
+                close: () => new Promise((done) => {
+                    server.closeAllConnections();
+                    server.close(done);
+                })
+            });
+        });
+    });
+}
+
+async function registerTelevision(harness) {
+    await fetch(`${harness.baseUrl}/api/tv/register`, { method: 'POST' });
+}
+
+test('a library file can be pushed to the television, which was previously unreachable', async () => {
+    const filePath = path.join(os.tmpdir(), `tvcast-test-push-${Date.now()}.mp4`);
+    fs.writeFileSync(filePath, Buffer.alloc(4096, 3));
+    const television = await startFakeTelevision();
+    const upstream = await startUpstream({});
+    const harness = await startApi({
+        resolveMedia: async (sourceUrl) => buildResolved(upstream.baseUrl, sourceUrl),
+        libraryItems: [{
+            id: 'localfilm',
+            title: 'Local Film',
+            folder: 'Movies',
+            sizeBytes: 4096,
+            mimeType: 'video/mp4',
+            extension: '.mp4',
+            subtitlePath: '',
+            filePath
+        }]
+    });
+    try {
+        await registerTelevision(harness);
+        const sent = await (await fetch(`${harness.baseUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicationId: 'file:localfilm' })
+        })).json();
+
+        assert.strictEqual(sent.delivered, true, 'the phone must be able to start a library file on the tv');
+        assert.strictEqual(television.pushed.length, 1, 'the television must receive exactly one push');
+        assert.strictEqual(television.pushed[0].mediaKind, 'file');
+        assert.strictEqual(television.pushed[0].title, 'Local Film');
+        assert.strictEqual(television.pushed[0].mediaUrl, `${harness.baseUrl}/file/localfilm.mp4`);
+
+        const played = await fetch(television.pushed[0].mediaUrl);
+        assert.strictEqual(played.status, 200, 'the url handed to the tv must actually serve the file');
+        assert.strictEqual((await played.arrayBuffer()).byteLength, 4096);
+    } finally {
+        await harness.close();
+        await upstream.close();
+        await television.close();
+        fs.unlinkSync(filePath);
+    }
+});
+
+test('an item already on the tv can be replayed without resolving the link again', async () => {
+    const television = await startFakeTelevision();
+    const upstream = await startUpstream({
+        '/subs.vtt': (request, response) => {
+            response.writeHead(200, { 'Content-Type': 'text/vtt' });
+            response.end(`WEBVTT\n\n00:10.000 --> 00:14.000\n${CUE_TEXT}\n`);
+        }
+    });
+    let resolveCount = 0;
+    const harness = await startApi({
+        resolveMedia: async (sourceUrl) => {
+            resolveCount += 1;
+            return buildResolved(upstream.baseUrl, sourceUrl);
+        }
+    });
+    try {
+        await registerTelevision(harness);
+        const published = await publish(harness, 'https://example.test/movie/44', 'english');
+        const countAfterPublish = resolveCount;
+
+        const replayed = await (await fetch(`${harness.baseUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicationId: published.publicationId })
+        })).json();
+
+        assert.strictEqual(replayed.delivered, true);
+        assert.strictEqual(replayed.publicationId, published.publicationId);
+        assert.strictEqual(resolveCount, countAfterPublish, 'a replay must not re-resolve the source link');
+        assert.strictEqual(television.pushed.length, 2, 'both the first send and the replay must reach the tv');
+        assert.strictEqual(television.pushed[1].mediaUrl, published.mediaUrl);
+    } finally {
+        await harness.close();
+        await upstream.close();
+        await television.close();
+    }
+});
+
+test('removing an item that is not there reports it instead of claiming success', async () => {
+    const upstream = await startUpstream({});
+    const harness = await startApi({
+        resolveMedia: async (sourceUrl) => buildResolved(upstream.baseUrl, sourceUrl)
+    });
+    try {
+        const published = await publish(harness, 'https://example.test/movie/77');
+
+        const first = await fetch(`${harness.baseUrl}/api/catalogue/${published.publicationId}`, { method: 'DELETE' });
+        assert.strictEqual(first.status, 200);
+        assert.strictEqual((await first.json()).ok, true);
+
+        const second = await fetch(`${harness.baseUrl}/api/catalogue/${published.publicationId}`, { method: 'DELETE' });
+        assert.strictEqual(second.status, 404, 'deleting twice must not look like it worked twice');
+        const body = await second.json();
+        assert.strictEqual(body.ok, false);
+        assert.ok(body.error.length > 0, 'the phone needs a reason to show');
+    } finally {
+        await harness.close();
+        await upstream.close();
+    }
+});
+
+test('the resolve reply tells the phone which rendition is already selected', async () => {
+    const upstream = await startUpstream({});
+    const harness = await startApi({
+        resolveMedia: async (sourceUrl) => {
+            const resolved = buildResolved(upstream.baseUrl, sourceUrl);
+            resolved.selectedRenditionId = 'fake:1080p';
+            return resolved;
+        }
+    });
+    try {
+        const offer = await (await fetch(`${harness.baseUrl}/api/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: 'https://example.test/movie/91' })
+        })).json();
+
+        assert.strictEqual(offer.selectedRenditionId, 'fake:1080p',
+            'without this the quality chips cannot show which one is live');
+        assert.ok(offer.renditions.some((rendition) => rendition.id === offer.selectedRenditionId),
+            'the selected rendition must be one of the offered ones');
+    } finally {
+        await harness.close();
+        await upstream.close();
+    }
+});

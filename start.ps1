@@ -12,10 +12,16 @@ if ($existing) {
         -RedirectStandardOutput 'server.log' -RedirectStandardError 'server.err'
     Start-Sleep -Seconds 3
     try {
-        $state = Invoke-RestMethod 'http://127.0.0.1:8787/api/state' -TimeoutSec 5
-        Write-Output "tvcast up  ->  http://$($state.serverAddress):8787"
-        Write-Output "library: $($state.libraryCount) videos"
-        foreach ($device in $state.devices) { Write-Output "renderer: $($device.name) @ $($device.address)" }
+        $hello = Invoke-RestMethod 'http://127.0.0.1:8787/api/hello' -TimeoutSec 5
+        $library = Invoke-RestMethod 'http://127.0.0.1:8787/api/library' -TimeoutSec 20
+        $television = Invoke-RestMethod 'http://127.0.0.1:8787/api/tv/status' -TimeoutSec 5
+        Write-Output "tvcast up  ->  $($hello.serverBaseUrl)"
+        Write-Output "library: $($library.total) videos"
+        if ($television.address) {
+            Write-Output "fire tv: $($television.address):$($television.port)"
+        } else {
+            Write-Output "fire tv: not located yet, it registers itself when the app opens"
+        }
     } catch {
         Write-Warning "started but not answering yet: $($_.Exception.Message)"
     }

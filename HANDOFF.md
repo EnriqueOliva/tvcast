@@ -38,6 +38,7 @@ AV1, VP9 and Dolby Vision renditions for that reason.
 | `lib/publications.js` | Content-addressed publication store, persisted |
 | `lib/synccheck.js` | Measures subtitle offset against the real audio |
 | `firetv/` | The Fire TV app (Java, Media3, no Leanback, no Compose) |
+| `public/index.html` | The phone. One file, no build step, no framework |
 
 `server.js` is 233 lines and only wires things together.
 
@@ -73,16 +74,40 @@ unalignable: one Yoru rendition ran 3264s against a real 2852s runtime, padded t
 offset could fix it. `DURATION_TOLERANCE_RATIO` is 0.10 and renditions are narrowed to those
 closest to the TMDB runtime before quality is considered.
 
+## The phone
+
+`public/index.html`, one file, no build step, no framework. It is a keyboard: paste a link, one
+tap, it plays. The Fire TV remote owns playback, so there is **no player bar and no position
+polling**, which is what used to make the phone claim "Nothing playing" over a running film.
+
+Two rules it is built around, both from the physical phone:
+
+- **No `<select>` anywhere.** Android renders them as bottom sheets, which land in the damaged
+  bottom half of the screen. Subtitle and quality are inline chip rows instead.
+- **Everything actionable stays in the top portion.** The compose screen ends around 470px of a
+  915px viewport. The lists are a separate top-anchored view, so any row can be scrolled up into
+  the reachable half rather than sitting under the fold.
+
+Sending is one tap: it resolves, auto-picks the first subtitle track (cineby already sorts
+English first), sends, and *then* shows the chips. Tapping a chip re-sends in place, which is
+free because ids are content addressed, so it replaces the row instead of duplicating it.
+
+Nothing reaches `innerHTML`. Every row is built with `createElement` and `textContent`, so a
+title containing `&` or `<script>` cannot break the page. There is one in-flight lock: the send
+button reads `working`, everything but `back` disables, and every request carries a timeout.
+
 ## Tests
 
-    npm test     # 50 tests, node:test only
+    npm test     # 54 tests, node:test only
 
 `test/tvapi.test.js` drives a **real HTTP server on an ephemeral port against a fake CDN**, so it
 covers routing, playlist rewriting, the proxy headers, failure paths and concurrency. Nothing
-stubs `child_process.spawn` and nothing replaces a module export.
+stubs `child_process.spawn` and nothing replaces a module export. The Fire TV push is tested
+against a real socket on port 8788 that records what it was sent.
 
-Mutation-verified: breaking the Referer, leaking the upstream URL into the playlist, and ignoring
-the subtitle offset each turn exactly one test red.
+Mutation-verified: breaking the Referer, leaking the upstream URL into the playlist, ignoring the
+subtitle offset, dropping the library push, skipping the replay push, making a delete always
+claim success, and hiding the selected rendition each turn exactly one test red.
 
 **The lesson that produced this suite:** the previous 143 tests passed with ffmpeg, the network
 and the TV entirely absent, and one of them asserted a bug was correct behaviour. Validate the
@@ -90,7 +115,7 @@ instrument against known-good input before believing any measurement.
 
 ## Still to do
 
-- Rewrite `public/index.html` as a keyboard: paste a link, pick subtitles and quality, send.
-  No player bar, and no `<select>` elements (Android renders them as bottom sheets, which land in
-  the damaged half of the screen).
-- The phone WebView wrapper and its signing key were deleted; the phone is a web page now.
+- The quality label reads `unknown` for some providers, because cineby's rendition has no height
+  in its label. Cosmetic, and it is the label rather than the pick that is wrong.
+- Publications written before 2026-07-31 have an empty `sourceUrl` and cannot be rehydrated after
+  a restart. Current code stores it correctly; delete any such row from the phone if one appears.
