@@ -28,3 +28,6 @@ tools/__pycache__/
 cache/
 
 node_modules/
+
+# Diagnostic cue dumps
+cues.json
