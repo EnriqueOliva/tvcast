@@ -5,9 +5,10 @@ config.json
 tvstate.json
 state.json
 
-# Logs written by start.ps1
+# Logs written by start.ps1 and the subtitle queue
 server.log
 server.err
+subtitle-queue.log
 
 # Android build output and machine-specific SDK paths
 firetv/build/
@@ -22,5 +23,8 @@ bin/yt-dlp.exe
 # Scratch audio pulled by the sync measuring tools
 tools/__pycache__/
 *.wav
+
+# Generated subtitles and the audio they came from
+cache/
 
 node_modules/

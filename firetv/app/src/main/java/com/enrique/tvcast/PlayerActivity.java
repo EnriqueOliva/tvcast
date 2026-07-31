@@ -20,13 +20,21 @@ import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.source.MergingMediaSource;
 import androidx.media3.ui.PlayerView;
 import androidx.media3.ui.SubtitleView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class PlayerActivity extends Activity {
 
@@ -45,6 +53,8 @@ public class PlayerActivity extends Activity {
     private static final int BUFFER_AFTER_REBUFFER_MILLISECONDS = 5000;
     private static final int SUBTITLE_OFF_INDEX = -1;
     private static final String EMPTY_STRING = "";
+    private static final String MEDIA_KIND_HLS = "hls";
+    private static final String MEDIA_KIND_SPLIT = "split";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -172,12 +182,7 @@ public class PlayerActivity extends Activity {
             }
         });
 
-        MediaItem.Builder itemBuilder = new MediaItem.Builder().setUri(playback.optString("mediaUrl"));
-        if (playback.optString("mediaKind", "hls").equals("hls")) {
-            itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8);
-        }
-        MediaItem item = itemBuilder.build();
-        player.setMediaItem(item);
+        player.setMediaSource(buildMediaSource());
         player.prepare();
 
         long resumeMilliseconds = playback.optLong("resumeMilliseconds", 0);
@@ -192,6 +197,42 @@ public class PlayerActivity extends Activity {
         subtitleController.start();
         selectInitialSubtitle();
         handler.postDelayed(progressReporter, PROGRESS_INTERVAL_MILLISECONDS);
+    }
+
+    private DefaultMediaSourceFactory buildSourceFactory() {
+        DefaultHttpDataSource.Factory httpFactory = new DefaultHttpDataSource.Factory()
+                .setAllowCrossProtocolRedirects(true);
+        JSONObject headers = playback.optJSONObject("httpHeaders");
+        if (headers != null && headers.length() > 0) {
+            Map<String, String> requestProperties = new HashMap<>();
+            Iterator<String> names = headers.keys();
+            while (names.hasNext()) {
+                String name = names.next();
+                requestProperties.put(name, headers.optString(name));
+            }
+            httpFactory.setDefaultRequestProperties(requestProperties);
+        }
+        return new DefaultMediaSourceFactory(httpFactory);
+    }
+
+    private MediaSource buildMediaSource() {
+        DefaultMediaSourceFactory sourceFactory = buildSourceFactory();
+        String mediaKind = playback.optString("mediaKind", MEDIA_KIND_HLS);
+        String mediaUrl = playback.optString("mediaUrl");
+        String audioUrl = playback.optString("audioUrl", EMPTY_STRING);
+
+        if (mediaKind.equals(MEDIA_KIND_SPLIT) && audioUrl.length() > 0) {
+            MediaSource videoSource = sourceFactory.createMediaSource(MediaItem.fromUri(mediaUrl));
+            MediaSource audioSource = sourceFactory.createMediaSource(MediaItem.fromUri(audioUrl));
+            Log.i(LOG_TAG, "merging separate video and audio streams");
+            return new MergingMediaSource(videoSource, audioSource);
+        }
+
+        MediaItem.Builder itemBuilder = new MediaItem.Builder().setUri(mediaUrl);
+        if (mediaKind.equals(MEDIA_KIND_HLS)) {
+            itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8);
+        }
+        return sourceFactory.createMediaSource(itemBuilder.build());
     }
 
     private void selectInitialSubtitle() {

@@ -96,6 +96,43 @@ Nothing reaches `innerHTML`. Every row is built with `createElement` and `textCo
 title containing `&` or `<script>` cannot break the page. There is one in-flight lock: the send
 button reads `working`, everything but `back` disables, and every request carries a timeout.
 
+## Foreign language shows: translate the audio, do not hunt for subtitles
+
+For a show whose audio you do not speak and which has no subtitles anywhere (the case that
+started this: a Turkish series on its official YouTube channel, no captions at all, not even
+auto-generated), the answer is to make the subtitles rather than find them.
+
+`tools/pregenerate-subtitles.cjs <playlist-url> <source-language>` walks a playlist, pulls the
+audio, and runs Whisper's **translate** task, which goes straight from foreign speech to timed
+English. Output is one `.srt` per video id in `cache/subtitles/`, and `lib/tvapi.js` offers it
+automatically as an `English (auto)` track whenever a YouTube link with a matching id is sent.
+
+Measured on the real thing: `large-v3` translates at **14x realtime** on the 4070, so a 2h24m
+episode costs about ten minutes, once. The queue skips anything already done, so it is safe to
+re-run and safe to kill.
+
+**Sync is exact by construction here**, and this is the point. The cues are derived from the very
+audio being played, so there is no offset to measure and no drift to correct. `verifySubtitleSync`
+is deliberately skipped for non-cineby publications.
+
+Beware the model choice: `large-v3-turbo` is much faster but was distilled for transcription, and
+its translate quality is markedly worse. Use `large-v3` for translation.
+
+## Anything that is not cineby
+
+`lib/resolve.js` returns a **direct stream** for everything else: `streamKind` is `hls`, `file`,
+or `split`, and the TV fetches it itself. Nothing is proxied through the PC, because the proxy
+only exists for cineby's Referer-checking CDN.
+
+`split` is how 1080p YouTube works: video and audio arrive as separate URLs and `PlayerActivity`
+combines them with `MergingMediaSource`. Without it yt-dlp's only combined format is 360p.
+`httpHeaders` from the resolver are applied to the player's `DefaultHttpDataSource`, so a stream
+that needs a User-Agent still plays without us relaying the bytes.
+
+Direct publications are **deliberately not persisted with their stream URL**. Signed CDN links
+expire, so after a restart the publication rehydrates by resolving again, which is what makes a
+day-old row still playable.
+
 ## Tests
 
     npm test     # 54 tests, node:test only

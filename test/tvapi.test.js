@@ -666,3 +666,111 @@ test('the resolve reply tells the phone which rendition is already selected', as
         await upstream.close();
     }
 });
+
+function buildDirectResolved(streamUrl, options) {
+    const settings = options || {};
+    return {
+        title: 'A Direct Stream',
+        totalDurationSeconds: 8665,
+        durationSeconds: 8665,
+        quality: settings.quality || '1080p',
+        provider: 'Youtube',
+        width: 1920,
+        height: 1080,
+        streamUrl,
+        audioStreamUrl: settings.audioStreamUrl || '',
+        streamKind: settings.streamKind || 'hls',
+        httpHeaders: settings.httpHeaders || {},
+        subtitleTracks: [],
+        renditions: [],
+        videoTrack: null,
+        audioTrack: null,
+        headers: {}
+    };
+}
+
+test('a direct stream is handed to the television untouched rather than proxied', async () => {
+    const television = await startFakeTelevision();
+    const harness = await startApi({
+        resolveMedia: async () => buildDirectResolved('https://cdn.example.test/master.m3u8', {
+            httpHeaders: { 'User-Agent': 'tvcast-test' }
+        })
+    });
+    try {
+        await registerTelevision(harness);
+        const sent = await publish(harness, 'https://www.youtube.com/watch?v=abcdefghijk');
+
+        assert.strictEqual(sent.delivered, true);
+        assert.strictEqual(sent.mediaKind, 'hls');
+        assert.strictEqual(sent.mediaUrl, 'https://cdn.example.test/master.m3u8',
+            'a public stream must not be routed through the pc');
+        assert.strictEqual(sent.httpHeaders['User-Agent'], 'tvcast-test',
+            'the tv needs the headers or the cdn will refuse it');
+        assert.strictEqual(television.pushed[0].mediaUrl, 'https://cdn.example.test/master.m3u8');
+    } finally {
+        await harness.close();
+        await television.close();
+    }
+});
+
+test('a split stream sends both the video and the audio url so 1080p can be merged', async () => {
+    const television = await startFakeTelevision();
+    const harness = await startApi({
+        resolveMedia: async () => buildDirectResolved('https://cdn.example.test/video-1080p.mp4', {
+            streamKind: 'split',
+            audioStreamUrl: 'https://cdn.example.test/audio.m4a'
+        })
+    });
+    try {
+        await registerTelevision(harness);
+        const sent = await publish(harness, 'https://www.youtube.com/watch?v=bbbbbbbbbbb');
+
+        assert.strictEqual(sent.mediaKind, 'split');
+        assert.strictEqual(sent.mediaUrl, 'https://cdn.example.test/video-1080p.mp4');
+        assert.strictEqual(sent.audioUrl, 'https://cdn.example.test/audio.m4a',
+            'without the audio url the merged source plays silent video');
+        assert.strictEqual(television.pushed[0].audioUrl, 'https://cdn.example.test/audio.m4a');
+    } finally {
+        await harness.close();
+        await television.close();
+    }
+});
+
+test('a generated subtitle on disk is offered and served as cues', async () => {
+    const videoIdentifier = 'zzTESTzz123';
+    const subtitleDirectory = path.join(__dirname, '..', 'cache', 'subtitles');
+    const subtitlePath = path.join(subtitleDirectory, `${videoIdentifier}.srt`);
+    fs.mkdirSync(subtitleDirectory, { recursive: true });
+    fs.writeFileSync(subtitlePath,
+        '1\n00:00:12,500 --> 00:00:15,000\nthe translated line\n\n'
+        + '2\n00:01:40,000 --> 00:01:42,250\nthe second line\n\n', 'utf8');
+
+    const harness = await startApi({
+        resolveMedia: async () => buildDirectResolved('https://cdn.example.test/master.m3u8')
+    });
+    try {
+        const offer = await (await fetch(`${harness.baseUrl}/api/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoIdentifier}` })
+        })).json();
+
+        assert.strictEqual(offer.subtitles.length, 1, 'the generated track must be offered to the phone');
+        assert.strictEqual(offer.subtitles[0].id, 'autoenglish');
+
+        const sent = await (await fetch(`${harness.baseUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ offerId: offer.offerId, subtitleId: 'autoenglish' })
+        })).json();
+
+        const cues = await (await fetch(sent.subtitles[0].cuesUrl)).json();
+        assert.strictEqual(cues.length, 2);
+        assert.strictEqual(cues[0].s, 12500, 'cue times must survive the srt parse exactly');
+        assert.strictEqual(cues[0].t, 'the translated line');
+        assert.strictEqual(cues[1].s, 100000);
+    } finally {
+        await harness.close();
+        fs.unlinkSync(subtitlePath);
+    }
+});
