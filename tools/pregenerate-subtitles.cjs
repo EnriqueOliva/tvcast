@@ -41,21 +41,31 @@ function readEpisodeTitle(videoIdentifier) {
     return videoIdentifier;
 }
 
+function removeStaleAudio(videoIdentifier) {
+    for (const entry of fs.readdirSync(AUDIO_DIRECTORY)) {
+        if (entry.startsWith(`${videoIdentifier}.`)) {
+            try {
+                fs.unlinkSync(path.join(AUDIO_DIRECTORY, entry));
+            } catch (error) {
+                void error;
+            }
+        }
+    }
+}
+
 function downloadAudio(videoIdentifier) {
+    removeStaleAudio(videoIdentifier);
     const template = path.join(AUDIO_DIRECTORY, `${videoIdentifier}.%(ext)s`);
     const downloaded = spawnSync(YT_DLP_PATH, [
-        '--no-warnings', '--no-playlist', '-f', 'bestaudio',
+        '--no-warnings', '--no-playlist', '--no-part', '-f', 'bestaudio',
         '-o', template, `https://www.youtube.com/watch?v=${videoIdentifier}`
     ], { encoding: 'utf8', windowsHide: true });
-    if (downloaded.status !== 0) {
+    const written = fs.readdirSync(AUDIO_DIRECTORY)
+        .filter((entry) => entry.startsWith(`${videoIdentifier}.`));
+    if (written.length === 0) {
         throw new Error(`audio download failed: ${(downloaded.stderr || EMPTY_STRING).trim().split('\n').slice(-2).join(' ')}`);
     }
-    const candidates = fs.readdirSync(AUDIO_DIRECTORY)
-        .filter((entry) => entry.startsWith(`${videoIdentifier}.`));
-    if (candidates.length === 0) {
-        throw new Error('yt-dlp reported success but wrote no audio file');
-    }
-    return path.join(AUDIO_DIRECTORY, candidates[0]);
+    return path.join(AUDIO_DIRECTORY, written[0]);
 }
 
 function translateAudio(audioPath, subtitlePath, sourceLanguage) {
@@ -63,16 +73,19 @@ function translateAudio(audioPath, subtitlePath, sourceLanguage) {
     const translated = spawnSync(PYTHON_PATH,
         [TRANSLATE_SCRIPT, audioPath, partialPath, sourceLanguage],
         { encoding: 'utf8', windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
-    if (translated.status !== 0) {
+    const produced = fs.existsSync(partialPath) ? fs.readFileSync(partialPath, 'utf8') : EMPTY_STRING;
+    const cueCount = (produced.match(/ --> /g) || []).length;
+    if (cueCount === 0) {
         try {
             fs.unlinkSync(partialPath);
         } catch (error) {
             void error;
         }
-        throw new Error(`whisper failed: ${(translated.stderr || EMPTY_STRING).trim().split('\n').slice(-2).join(' ')}`);
+        throw new Error(`whisper produced nothing: ${(translated.stderr || EMPTY_STRING).trim().split('\n').slice(-2).join(' ')}`);
     }
     fs.renameSync(partialPath, subtitlePath);
-    return (translated.stderr || EMPTY_STRING).trim().split('\n').pop();
+    const exitNote = translated.status === 0 ? EMPTY_STRING : ` (exit ${translated.status}, output kept)`;
+    return `${cueCount} cues${exitNote}`;
 }
 
 function main() {

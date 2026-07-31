@@ -1,3 +1,4 @@
+import os
 import sys
 
 from faster_whisper import WhisperModel
@@ -54,8 +55,9 @@ def main():
             handle.flush()
 
     sys.stderr.write("translated %d cues on %s\n" % (written, device_used))
-    if written == 0:
-        sys.exit(1)
+    sys.stderr.flush()
+    sys.stdout.flush()
+    os._exit(0 if written > 0 else 1)
 
 
 if __name__ == "__main__":
