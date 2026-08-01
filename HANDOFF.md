@@ -118,6 +118,22 @@ is deliberately skipped for non-cineby publications.
 Beware the model choice: `large-v3-turbo` is much faster but was distilled for transcription, and
 its translate quality is markedly worse. Use `large-v3` for translation.
 
+## YouTube needs two things, and neither is obvious
+
+**A logged-in cookie source.** Without it YouTube answers "Sign in to confirm you're not a bot",
+and it will flag the machine after a burst of unauthenticated requests. `ytdlpCookiesFromBrowser`
+is `firefox` because Firefox is the only browser yt-dlp can read reliably on this box: Chrome
+locks its cookie database and Edge uses app-bound encryption. **Everything that shells out to
+yt-dlp must go through that config**, including `tools/pregenerate-subtitles.cjs`, which once did
+not and got this machine blocked.
+
+**A JavaScript runtime.** YouTube requires solving an "n challenge" to reveal real formats, and
+without a runtime yt-dlp silently returns only storyboard images, reporting
+`Requested format is not available`. yt-dlp enables **only deno by default**, so
+`ytdlpExtraArgs` carries `--js-runtimes node` to use the Node that is already installed. The
+symptom looks like a format problem and is nothing of the sort; run with `-v` and read the
+`JS Challenge Providers` line.
+
 ## Anything that is not cineby
 
 `lib/resolve.js` returns a **direct stream** for everything else: `streamKind` is `hls`, `file`,
