@@ -55,6 +55,12 @@ public class PlayerActivity extends Activity {
     private static final String EMPTY_STRING = "";
     private static final String MEDIA_KIND_HLS = "hls";
     private static final String MEDIA_KIND_SPLIT = "split";
+    private static final float VOLUME_STEP = 0.05f;
+    private static final int PERCENT = 100;
+    private static final String PREFERENCES_NAME = "tvcast";
+    private static final String VOLUME_KEY = "playerVolume";
+
+    private float volumeBeforeMute = 1f;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -174,10 +180,19 @@ public class PlayerActivity extends Activity {
                 .build();
         playerView.setPlayer(player);
 
-        player.setTrackSelectionParameters(
-                player.getTrackSelectionParameters().buildUpon()
-                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                        .build());
+        int maximumHeight = playback.optInt("maxVideoHeight", 0);
+        TrackSelectionParameters.Builder selection = player.getTrackSelectionParameters().buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true);
+        if (maximumHeight > 0) {
+            selection.setMaxVideoSize(Integer.MAX_VALUE, maximumHeight);
+            selection.setMinVideoSize(0, maximumHeight);
+            selection.setForceHighestSupportedBitrate(true);
+            Log.i(LOG_TAG, "pinning video to " + maximumHeight + "p");
+        }
+        player.setTrackSelectionParameters(selection.build());
+
+        volumeBeforeMute = readStoredVolume();
+        player.setVolume(volumeBeforeMute);
 
         subtitleController = new SubtitleController(subtitleView, player);
 
@@ -346,15 +361,58 @@ public class PlayerActivity extends Activity {
             player.seekForward();
             showNotice("+30 s");
             return true;
-        } else if (controllerVisible == false && code == KeyEvent.KEYCODE_DPAD_UP) {
+        } else if (code == KeyEvent.KEYCODE_VOLUME_UP) {
+            changeVolume(VOLUME_STEP);
+            return true;
+        } else if (code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            changeVolume(-VOLUME_STEP);
+            return true;
+        } else if (code == KeyEvent.KEYCODE_VOLUME_MUTE) {
+            toggleMute();
+            return true;
+        } else if (controllerVisible && code == KeyEvent.KEYCODE_DPAD_UP) {
             nudgeSubtitle(SUBTITLE_STEP_MILLISECONDS);
             return true;
-        } else if (controllerVisible == false && code == KeyEvent.KEYCODE_DPAD_DOWN) {
+        } else if (controllerVisible && code == KeyEvent.KEYCODE_DPAD_DOWN) {
             nudgeSubtitle(-SUBTITLE_STEP_MILLISECONDS);
+            return true;
+        } else if (code == KeyEvent.KEYCODE_DPAD_UP) {
+            changeVolume(VOLUME_STEP);
+            return true;
+        } else if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
+            changeVolume(-VOLUME_STEP);
             return true;
         } else {
             return super.dispatchKeyEvent(event);
         }
+    }
+
+    private void changeVolume(float delta) {
+        float updated = Math.max(0f, Math.min(1f, player.getVolume() + delta));
+        player.setVolume(updated);
+        volumeBeforeMute = updated > 0f ? updated : volumeBeforeMute;
+        showNotice("Volume " + Math.round(updated * PERCENT) + "%");
+        storeVolume(updated);
+    }
+
+    private void toggleMute() {
+        if (player.getVolume() > 0f) {
+            volumeBeforeMute = player.getVolume();
+            player.setVolume(0f);
+            showNotice("Muted");
+        } else {
+            player.setVolume(volumeBeforeMute);
+            showNotice("Volume " + Math.round(volumeBeforeMute * PERCENT) + "%");
+        }
+    }
+
+    private void storeVolume(float level) {
+        getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+                .edit().putFloat(VOLUME_KEY, level).apply();
+    }
+
+    private float readStoredVolume() {
+        return getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE).getFloat(VOLUME_KEY, 1f);
     }
 
     private void togglePlayback() {
