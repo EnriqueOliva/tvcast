@@ -123,6 +123,10 @@ input:focus{border-color:var(--accent)}
         <button id="sendButton" class="primary">send to tv</button>
         <button id="downloadButton">download</button>
       </div>
+      <div class="row">
+        <button id="subtitleEarlierButton">subs 0.5s earlier</button>
+        <button id="subtitleLaterButton">subs 0.5s later</button>
+      </div>
       <p class="status" id="statusLine"></p>
     </div>
 
@@ -175,6 +179,7 @@ var REQUEST_TIMEOUT_MILLISECONDS = 15000;
 var SLOW_REQUEST_TIMEOUT_MILLISECONDS = 120000;
 var POLL_INTERVAL_MILLISECONDS = 5000;
 var SEARCH_DEBOUNCE_MILLISECONDS = 250;
+var SUBTITLE_NUDGE_MILLISECONDS = 500;
 var MILLISECONDS_PER_SECOND = 1000;
 var SECONDS_PER_MINUTE = 60;
 var SECONDS_PER_HOUR = 3600;
@@ -679,6 +684,23 @@ function closeList() {
     elements.homeView.classList.add('on');
 }
 
+function nudgeSubtitles(deltaMilliseconds) {
+    runExclusive('shifting the subtitles on the tv', async function () {
+        var result = await callApi('/api/subtitle-offset', {
+            method: 'POST',
+            body: { deltaMilliseconds: deltaMilliseconds }
+        });
+        var seconds = (result.subtitleOffsetMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1);
+        setStatus('subtitles now ' + seconds + ' s from the audio', 'good');
+    });
+}
+
+elements.subtitleEarlierButton.addEventListener('click', function () {
+    nudgeSubtitles(-SUBTITLE_NUDGE_MILLISECONDS);
+});
+elements.subtitleLaterButton.addEventListener('click', function () {
+    nudgeSubtitles(SUBTITLE_NUDGE_MILLISECONDS);
+});
 elements.sendButton.addEventListener('click', sendPastedLink);
 elements.downloadButton.addEventListener('click', startDownload);
 elements.backButton.addEventListener('click', closeList);

@@ -370,12 +370,6 @@ public class PlayerActivity extends Activity {
         } else if (code == KeyEvent.KEYCODE_VOLUME_MUTE) {
             toggleMute();
             return true;
-        } else if (controllerVisible && code == KeyEvent.KEYCODE_DPAD_UP) {
-            nudgeSubtitle(SUBTITLE_STEP_MILLISECONDS);
-            return true;
-        } else if (controllerVisible && code == KeyEvent.KEYCODE_DPAD_DOWN) {
-            nudgeSubtitle(-SUBTITLE_STEP_MILLISECONDS);
-            return true;
         } else if (code == KeyEvent.KEYCODE_DPAD_UP) {
             changeVolume(VOLUME_STEP);
             return true;
@@ -390,6 +384,7 @@ public class PlayerActivity extends Activity {
     private void changeVolume(float delta) {
         float updated = Math.max(0f, Math.min(1f, player.getVolume() + delta));
         player.setVolume(updated);
+        Log.i(LOG_TAG, "volume " + player.getVolume());
         volumeBeforeMute = updated > 0f ? updated : volumeBeforeMute;
         showNotice("Volume " + Math.round(updated * PERCENT) + "%");
         storeVolume(updated);
