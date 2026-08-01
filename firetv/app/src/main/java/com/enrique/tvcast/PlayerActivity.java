@@ -85,8 +85,20 @@ public class PlayerActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        releasePlayer();
+        discardCurrentItem();
         applyPlayback(intent);
+    }
+
+    private void discardCurrentItem() {
+        reportProgress();
+        releasePlayer();
+        subtitleView.setCues(null);
+        noticeView.setVisibility(TextView.GONE);
+        playback = null;
+        subtitleTracks = new JSONArray();
+        selectedSubtitleIndex = SUBTITLE_OFF_INDEX;
+        contentKey = EMPTY_STRING;
+        Log.i(LOG_TAG, "discarded the previous item before loading the new one");
     }
 
     private void buildLayout() {
@@ -140,6 +152,9 @@ public class PlayerActivity extends Activity {
             subtitleTracks = new JSONArray();
         }
         ServerLocator.setBaseUrl(this, serverBaseUrl);
+        Log.i(LOG_TAG, "loading " + playback.optString("title") + " contentKey=" + contentKey
+                + " subtitleTracks=" + subtitleTracks.length());
+        showNotice(playback.optString("title"));
         startPlayer();
     }
 
@@ -268,9 +283,8 @@ public class PlayerActivity extends Activity {
                 final CueTrack parsed = CueTrack.parse(body);
                 handler.post(() -> {
                     subtitleController.setCueTrack(parsed);
-                    if (announce) {
-                        showNotice("Subtitles: " + language);
-                    }
+                    showNotice("Subtitles: " + language + " (" + parsed.size() + " lines)");
+                    Log.i(LOG_TAG, "loaded " + parsed.size() + " cues for " + language);
                 });
             } catch (Exception error) {
                 Log.e(LOG_TAG, "subtitle load failed", error);

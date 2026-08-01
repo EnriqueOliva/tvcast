@@ -69,7 +69,7 @@ public class HomeActivity extends Activity {
         super.onResume();
         PlaybackBridgeService.ensureRunning(this);
         collectPendingPlayback();
-        loadCatalogue();
+        loadLinks();
     }
 
     private void collectPendingPlayback() {
@@ -118,7 +118,7 @@ public class HomeActivity extends Activity {
         setContentView(root);
     }
 
-    private void loadCatalogue() {
+    private void loadLinks() {
         final String baseUrl = ServerLocator.getBaseUrl(this);
         if (baseUrl.length() == 0) {
             statusView.setText("No PC configured yet. Send something from your phone first.");
@@ -127,23 +127,23 @@ public class HomeActivity extends Activity {
         statusView.setText("Loading from " + baseUrl);
         new Thread(() -> {
             try {
-                final String body = ServerApi.get(baseUrl + "/api/catalogue");
+                final String body = ServerApi.get(baseUrl + "/api/links");
                 final JSONArray items = new JSONObject(body).getJSONArray("items");
-                handler.post(() -> renderCatalogue(items, baseUrl));
+                handler.post(() -> renderLinks(items, baseUrl));
             } catch (Exception error) {
-                Log.w(LOG_TAG, "catalogue load failed", error);
+                Log.w(LOG_TAG, "link list failed", error);
                 handler.post(() -> statusView.setText("Cannot reach the PC at " + baseUrl));
             }
         }).start();
     }
 
-    private void renderCatalogue(JSONArray items, String baseUrl) {
+    private void renderLinks(JSONArray items, String baseUrl) {
         listContainer.removeAllViews();
         if (items.length() == 0) {
             statusView.setText("Nothing sent yet. Paste a link on your phone.");
             return;
         }
-        statusView.setText(items.length() + " ready to watch");
+        statusView.setText(items.length() + " links. Selecting one loads it fresh.");
         for (int index = 0; index < items.length(); index += 1) {
             JSONObject item = items.optJSONObject(index);
             if (item != null) {
@@ -156,25 +156,11 @@ public class HomeActivity extends Activity {
     }
 
     private View buildRow(JSONObject item, String baseUrl) {
-        final String publicationId = item.optString("id");
-        String title = item.optString("title");
-        long durationSeconds = item.optLong("durationSeconds", 0);
-        String quality = item.optString("quality", EMPTY_STRING);
-        String subtitle = item.optString("selectedSubtitleId", EMPTY_STRING);
-
-        StringBuilder detail = new StringBuilder();
-        if (durationSeconds > 0) {
-            detail.append(formatDuration(durationSeconds));
-        }
-        if (quality.length() > 0) {
-            detail.append("  ").append(quality);
-        }
-        if (subtitle.length() > 0) {
-            detail.append("  subtitles: ").append(subtitle);
-        }
+        final String sourceUrl = item.optString("url");
+        String title = item.optString("title", sourceUrl);
 
         Button row = new Button(this);
-        row.setText(title + "\n" + detail.toString().trim());
+        row.setText(title + "\n" + sourceUrl);
         row.setTextSize(19);
         row.setTextColor(Color.WHITE);
         row.setAllCaps(false);
@@ -187,29 +173,22 @@ public class HomeActivity extends Activity {
         row.setLayoutParams(layout);
         row.setOnFocusChangeListener((view, focused) ->
                 view.setBackgroundColor(Color.parseColor(focused ? "#26405c" : "#161c24")));
-        row.setOnClickListener(view -> openPublication(publicationId, baseUrl));
+        row.setOnClickListener(view -> sendLink(sourceUrl, baseUrl));
         return row;
     }
 
-    private void openPublication(String publicationId, String baseUrl) {
-        statusView.setText("Starting...");
+    private void sendLink(String sourceUrl, String baseUrl) {
+        statusView.setText("Loading the newest version of that link...");
         new Thread(() -> {
             try {
-                final String payload = ServerApi.get(baseUrl + "/api/play/" + publicationId);
-                handler.post(() -> startActivity(PlayerActivity.buildIntent(HomeActivity.this, payload)));
+                JSONObject request = new JSONObject();
+                request.put("url", sourceUrl);
+                ServerApi.post(baseUrl + "/api/send", request.toString());
+                Log.i(LOG_TAG, "asked the pc to resolve and send " + sourceUrl);
             } catch (Exception error) {
-                Log.w(LOG_TAG, "could not start publication", error);
-                handler.post(() -> statusView.setText("Could not start that item: " + error.getMessage()));
+                Log.w(LOG_TAG, "could not send that link", error);
+                handler.post(() -> statusView.setText("Could not load that link: " + error.getMessage()));
             }
         }).start();
-    }
-
-    private String formatDuration(long totalSeconds) {
-        long hours = totalSeconds / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        if (hours > 0) {
-            return hours + "h " + minutes + "m";
-        }
-        return minutes + "m";
     }
 }

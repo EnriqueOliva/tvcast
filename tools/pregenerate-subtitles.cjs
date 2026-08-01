@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const YT_DLP_PATH = path.join(PROJECT_ROOT, 'bin', 'yt-dlp.exe');
+const CONFIG_PATH = path.join(PROJECT_ROOT, 'config.json');
 const PYTHON_PATH = 'C:\\workshops\\live-transcript\\.venv\\Scripts\\python.exe';
 const TRANSLATE_SCRIPT = path.join(__dirname, 'translate-episode.py');
 const SUBTITLE_DIRECTORY = path.join(PROJECT_ROOT, 'cache', 'subtitles');
@@ -16,6 +17,26 @@ function log(message) {
     process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${message}\n`);
 }
 
+function buildYtDlpArguments(specific) {
+    let configuration = {};
+    try {
+        configuration = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    } catch (error) {
+        void error;
+    }
+    const shared = ['--no-warnings'];
+    if (configuration.ytdlpCookiesFromBrowser) {
+        shared.push('--cookies-from-browser', configuration.ytdlpCookiesFromBrowser);
+    }
+    if (configuration.ytdlpImpersonate) {
+        shared.push('--impersonate', configuration.ytdlpImpersonate);
+    }
+    for (const extra of configuration.ytdlpExtraArgs || []) {
+        shared.push(extra);
+    }
+    return shared.concat(specific);
+}
+
 function extractVideoIdentifiers(sourceUrl) {
     const parsed = new URL(sourceUrl);
     const inline = parsed.searchParams.get(VIDEO_IDS_PARAMETER);
@@ -23,7 +44,7 @@ function extractVideoIdentifiers(sourceUrl) {
         return inline.split(',').map((entry) => entry.trim()).filter((entry) => entry !== EMPTY_STRING);
     }
     const listed = spawnSync(YT_DLP_PATH,
-        ['--no-warnings', '--flat-playlist', '--print', '%(id)s', sourceUrl],
+        buildYtDlpArguments(['--flat-playlist', '--print', '%(id)s', sourceUrl]),
         { encoding: 'utf8', windowsHide: true });
     if (listed.status !== 0) {
         throw new Error(`could not list that playlist: ${(listed.stderr || EMPTY_STRING).trim().slice(0, 200)}`);
@@ -33,7 +54,7 @@ function extractVideoIdentifiers(sourceUrl) {
 
 function readEpisodeTitle(videoIdentifier) {
     const printed = spawnSync(YT_DLP_PATH,
-        ['--no-warnings', '--print', '%(title)s', `https://www.youtube.com/watch?v=${videoIdentifier}`],
+        buildYtDlpArguments(['--print', '%(title)s', `https://www.youtube.com/watch?v=${videoIdentifier}`]),
         { encoding: 'utf8', windowsHide: true });
     if (printed.status === 0) {
         return printed.stdout.trim().split(/\r?\n/)[0] || videoIdentifier;
@@ -56,10 +77,10 @@ function removeStaleAudio(videoIdentifier) {
 function downloadAudio(videoIdentifier) {
     removeStaleAudio(videoIdentifier);
     const template = path.join(AUDIO_DIRECTORY, `${videoIdentifier}.%(ext)s`);
-    const downloaded = spawnSync(YT_DLP_PATH, [
-        '--no-warnings', '--no-playlist', '--no-part', '-f', 'bestaudio',
+    const downloaded = spawnSync(YT_DLP_PATH, buildYtDlpArguments([
+        '--no-playlist', '--no-part', '-f', 'bestaudio',
         '-o', template, `https://www.youtube.com/watch?v=${videoIdentifier}`
-    ], { encoding: 'utf8', windowsHide: true });
+    ]), { encoding: 'utf8', windowsHide: true });
     const written = fs.readdirSync(AUDIO_DIRECTORY)
         .filter((entry) => entry.startsWith(`${videoIdentifier}.`));
     if (written.length === 0) {

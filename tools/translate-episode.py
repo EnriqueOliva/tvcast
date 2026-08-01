@@ -5,13 +5,11 @@ from faster_whisper import WhisperModel
 
 TRANSLATE_OPTIONS = {
     "task": "translate",
-    "vad_filter": True,
-    "vad_parameters": {"min_silence_duration_ms": 700, "speech_pad_ms": 150},
+    "vad_filter": False,
     "condition_on_previous_text": False,
     "beam_size": 5,
+    "no_speech_threshold": 0.6,
     "word_timestamps": True,
-    "hallucination_silence_threshold": 2.0,
-    "compression_ratio_threshold": 2.2,
 }
 
 MAXIMUM_CUE_SECONDS = 7.0
@@ -53,13 +51,14 @@ def main():
             text = segment.text.strip()
             if text == "":
                 continue
+            start = segment.words[0].start if segment.words else segment.start
             spoken_end = segment.words[-1].end if segment.words else segment.end
-            end = min(spoken_end, segment.start + MAXIMUM_CUE_SECONDS)
-            if end - segment.start < MINIMUM_CUE_SECONDS:
-                end = segment.start + MINIMUM_CUE_SECONDS
+            end = min(spoken_end, start + MAXIMUM_CUE_SECONDS)
+            if end - start < MINIMUM_CUE_SECONDS:
+                end = start + MINIMUM_CUE_SECONDS
             written += 1
             handle.write("%d\n" % written)
-            handle.write("%s --> %s\n" % (format_timestamp(segment.start), format_timestamp(end)))
+            handle.write("%s --> %s\n" % (format_timestamp(start), format_timestamp(end)))
             handle.write("%s\n\n" % text)
             handle.flush()
 

@@ -19,6 +19,8 @@ public class PlaybackBridgeService extends Service {
     private static final String CHANNEL_ID = "tvcast-bridge";
     private static final int NOTIFICATION_ID = 1;
     private static final String EMPTY_STRING = "";
+    private static final int REGISTER_ATTEMPTS = 10;
+    private static final int REGISTER_RETRY_MILLISECONDS = 15000;
 
     private TinyHttpServer listener;
 
@@ -36,6 +38,31 @@ public class PlaybackBridgeService extends Service {
         startInForeground();
         listener = new TinyHttpServer(LISTEN_PORT, this::handle);
         listener.start();
+        announceToServer();
+    }
+
+    private void announceToServer() {
+        final String baseUrl = ServerLocator.getBaseUrl(this);
+        if (baseUrl.length() == 0) {
+            Log.i(LOG_TAG, "no server address stored yet, waiting to be found by the sweep");
+            return;
+        }
+        new Thread(() -> {
+            for (int attempt = 0; attempt < REGISTER_ATTEMPTS; attempt += 1) {
+                try {
+                    ServerApi.post(baseUrl + "/api/tv/register", "{}");
+                    Log.i(LOG_TAG, "registered with the pc at " + baseUrl);
+                    return;
+                } catch (Exception error) {
+                    Log.w(LOG_TAG, "register attempt " + (attempt + 1) + " failed: " + error.getMessage());
+                    try {
+                        Thread.sleep(REGISTER_RETRY_MILLISECONDS);
+                    } catch (InterruptedException interrupted) {
+                        return;
+                    }
+                }
+            }
+        }).start();
     }
 
     private void startInForeground() {
