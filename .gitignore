@@ -20,6 +20,9 @@ firetv/local.properties
 # Third-party binary, fetched separately
 bin/yt-dlp.exe
 
+# Built from bin/runhidden.cs, keeps the scheduled task from flashing a console
+bin/runhidden.exe
+
 # Scratch audio pulled by the sync measuring tools
 tools/__pycache__/
 *.wav
@@ -31,3 +34,15 @@ node_modules/
 
 # Diagnostic cue dumps
 cues.json
+
+# Runtime logs and state backups
+subtitle-queue.err
+queue.pid
+tvstate.json.backup
+queue-ids.txt
+
+# Phone app build output
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
