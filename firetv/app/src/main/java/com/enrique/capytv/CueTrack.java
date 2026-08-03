@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

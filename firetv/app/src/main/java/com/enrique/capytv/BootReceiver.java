@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

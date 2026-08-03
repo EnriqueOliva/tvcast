@@ -58,7 +58,7 @@ function buildResolved(upstreamBaseUrl, sourceUrl, packaging) {
 }
 
 async function startApi(options) {
-    const stateFilePath = path.join(os.tmpdir(), `tvcast-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+    const stateFilePath = path.join(os.tmpdir(), `capytv-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
     const runtime = { serverAddress: '127.0.0.1', libraryItems: options.libraryItems || [] };
     const configuration = { port: 0 };
 
@@ -314,7 +314,7 @@ test('the same title sent twice with the same choices replaces rather than dupli
     }
 });
 
-test('a different subtitle choice is a different publication', async () => {
+test('the same link keeps one publication no matter which subtitle is chosen', async () => {
     const upstream = await startUpstream({
         '/subs.vtt': (request, response) => {
             response.writeHead(200, { 'Content-Type': 'text/vtt' });
@@ -328,9 +328,14 @@ test('a different subtitle choice is a different publication', async () => {
         const without = await publish(harness, 'https://example.test/movie/8');
         const with_ = await publish(harness, 'https://example.test/movie/8', 'english');
 
-        assert.notStrictEqual(without.publicationId, with_.publicationId);
+        assert.strictEqual(without.publicationId, with_.publicationId,
+            'a subtitle choice must not mint a second row for the same link');
         assert.strictEqual(with_.selectedSubtitleId, 'english');
         assert.strictEqual(without.selectedSubtitleId, '');
+
+        const catalogue = await (await fetch(`${harness.baseUrl}/api/catalogue`)).json();
+        const matching = catalogue.items.filter((item) => item.id === without.publicationId);
+        assert.strictEqual(matching.length, 1, 'the catalogue must hold exactly one entry per link');
     } finally {
         await harness.close();
         await upstream.close();
@@ -382,7 +387,7 @@ test('a url that is not http is refused before any resolving happens', async () 
 });
 
 test('library files are offered to the television and serve byte ranges', async () => {
-    const filePath = path.join(os.tmpdir(), `tvcast-test-media-${Date.now()}.mp4`);
+    const filePath = path.join(os.tmpdir(), `capytv-test-media-${Date.now()}.mp4`);
     fs.writeFileSync(filePath, Buffer.alloc(5000, 7));
     const upstream = await startUpstream({});
     const harness = await startApi({
@@ -511,7 +516,7 @@ function startFakeTelevision() {
         request.on('data', (chunk) => chunks.push(chunk));
         request.on('end', () => {
             if (request.url === '/ping') {
-                response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"tvcast"}');
+                response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"app":"capytv"}');
             } else if (request.url === '/play') {
                 pushed.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
                 response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}');
@@ -538,7 +543,7 @@ async function registerTelevision(harness) {
 }
 
 test('a library file can be pushed to the television, which was previously unreachable', async () => {
-    const filePath = path.join(os.tmpdir(), `tvcast-test-push-${Date.now()}.mp4`);
+    const filePath = path.join(os.tmpdir(), `capytv-test-push-${Date.now()}.mp4`);
     fs.writeFileSync(filePath, Buffer.alloc(4096, 3));
     const television = await startFakeTelevision();
     const upstream = await startUpstream({});
@@ -641,7 +646,7 @@ test('removing an item that is not there reports it instead of claiming success'
     }
 });
 
-test('the resolve reply tells the phone which rendition is already selected', async () => {
+test('the resolve reply offers the phone no quality choice at all', async () => {
     const upstream = await startUpstream({});
     const harness = await startApi({
         resolveMedia: async (sourceUrl) => {
@@ -657,10 +662,10 @@ test('the resolve reply tells the phone which rendition is already selected', as
             body: JSON.stringify({ url: 'https://example.test/movie/91' })
         })).json();
 
-        assert.strictEqual(offer.selectedRenditionId, 'fake:1080p',
-            'without this the quality chips cannot show which one is live');
-        assert.ok(offer.renditions.some((rendition) => rendition.id === offer.selectedRenditionId),
-            'the selected rendition must be one of the offered ones');
+        assert.strictEqual(offer.renditions, undefined,
+            'quality picking is gone, the phone must not be handed a rendition list');
+        assert.strictEqual(offer.selectedRenditionId, undefined,
+            'quality picking is gone, the phone must not be told which rendition is live');
     } finally {
         await harness.close();
         await upstream.close();
@@ -693,7 +698,7 @@ test('a direct stream is handed to the television untouched rather than proxied'
     const television = await startFakeTelevision();
     const harness = await startApi({
         resolveMedia: async () => buildDirectResolved('https://cdn.example.test/master.m3u8', {
-            httpHeaders: { 'User-Agent': 'tvcast-test' }
+            httpHeaders: { 'User-Agent': 'capytv-test' }
         })
     });
     try {
@@ -704,7 +709,7 @@ test('a direct stream is handed to the television untouched rather than proxied'
         assert.strictEqual(sent.mediaKind, 'hls');
         assert.strictEqual(sent.mediaUrl, 'https://cdn.example.test/master.m3u8',
             'a public stream must not be routed through the pc');
-        assert.strictEqual(sent.httpHeaders['User-Agent'], 'tvcast-test',
+        assert.strictEqual(sent.httpHeaders['User-Agent'], 'capytv-test',
             'the tv needs the headers or the cdn will refuse it');
         assert.strictEqual(television.pushed[0].mediaUrl, 'https://cdn.example.test/master.m3u8');
     } finally {

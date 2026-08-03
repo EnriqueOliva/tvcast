@@ -8,6 +8,7 @@ const CONFIG_PATH = path.join(PROJECT_ROOT, 'config.json');
 const VIDEO_IDS_PARAMETER = 'video_ids';
 const EMPTY_STRING = '';
 const DEFAULT_SERVER = 'http://127.0.0.1:8787';
+const DEFAULT_COLLECTION = 'main';
 
 function log(message) {
     process.stdout.write(`${message}\n`);
@@ -24,7 +25,7 @@ function loadConfiguration() {
 
 function buildYtDlpArguments(specific) {
     const configuration = loadConfiguration();
-    const shared = ['--no-warnings'];
+    const shared = ['--no-warnings', '--encoding', 'UTF-8'];
     if (configuration.ytdlpCookiesFromBrowser) {
         shared.push('--cookies-from-browser', configuration.ytdlpCookiesFromBrowser);
     }
@@ -65,9 +66,10 @@ function readTitles(identifiers) {
 
 async function main() {
     const sourceUrl = process.argv[2];
-    const serverBaseUrl = process.argv[3] || DEFAULT_SERVER;
+    const collection = process.argv[3] || DEFAULT_COLLECTION;
+    const serverBaseUrl = process.argv[4] || DEFAULT_SERVER;
     if (sourceUrl === undefined) {
-        process.stderr.write('usage: node tools/seed-links.cjs <playlist-or-watch-url> [server-base-url]\n');
+        process.stderr.write('usage: node tools/seed-links.cjs <playlist-or-watch-url> [collection] [server-base-url]\n');
         process.exit(1);
     }
 
@@ -82,7 +84,11 @@ async function main() {
         const response = await fetch(`${serverBaseUrl}/api/links`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: pageUrl, title: titles.get(identifier) || pageUrl })
+            body: JSON.stringify({
+                url: pageUrl,
+                title: titles.get(identifier) || pageUrl,
+                collection
+            })
         });
         if (response.ok) {
             stored += 1;
@@ -90,7 +96,7 @@ async function main() {
             log(`could not store ${identifier}: HTTP ${response.status}`);
         }
     }
-    log(`${stored} links stored on the pc`);
+    log(`${stored} links stored on the pc under "${collection}"`);
 }
 
 main();

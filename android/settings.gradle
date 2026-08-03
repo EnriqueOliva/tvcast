@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'capytv'
+rootProject.name = 'capytv-phone'
 include ':app'

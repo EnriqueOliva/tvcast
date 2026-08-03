@@ -1,8 +1,8 @@
 {
-  "name": "tvcast",
+  "name": "capytv",
   "version": "1.0.0",
   "private": true,
-  "description": "Watch anything on the Whale TV, driven from the phone.",
+  "description": "Paste a link on the phone, watch it on the Fire TV.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

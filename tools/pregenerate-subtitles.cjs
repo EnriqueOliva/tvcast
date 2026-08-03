@@ -24,7 +24,7 @@ function buildYtDlpArguments(specific) {
     } catch (error) {
         void error;
     }
-    const shared = ['--no-warnings'];
+    const shared = ['--no-warnings', '--encoding', 'UTF-8'];
     if (configuration.ytdlpCookiesFromBrowser) {
         shared.push('--cookies-from-browser', configuration.ytdlpCookiesFromBrowser);
     }

@@ -141,7 +141,7 @@ async function main() {
             continue;
         }
         const exactStart = segments[startIndex].start;
-        const audioPath = path.join(os.tmpdir(), `tvcast-sync-${startIndex}.wav`);
+        const audioPath = path.join(os.tmpdir(), `capytv-sync-${startIndex}.wav`);
         try {
             await buildWindowAudio(segments, startIndex, audioPath);
             const spoken = JSON.parse(await runProcess(PYTHON, [TRANSCRIBE_SCRIPT, audioPath, MODEL_SIZE, '0']));

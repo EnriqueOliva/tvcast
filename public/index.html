@@ -3,189 +3,354 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0d10">
+<meta name="theme-color" content="#0a0c10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>tvcast</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128250;</text></svg>">
+<title>capyTV</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="application-name" content="capyTV">
+<meta name="apple-mobile-web-app-title" content="capyTV">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
 <style>
 :root{
-  --background:#0b0d10; --surface:#151a20; --surface-high:#1e252d; --line:#2a333d;
-  --text:#e9eef4; --muted:#8b98a7; --accent:#4da3ff;
-  --danger:#ff6b6b; --success:#3ddc84; --warning:#ffc257;
+  --bg:#0a0c10; --bg-lift:#0f1319;
+  --surface:#151a21; --surface-2:#1b222b; --surface-3:#232d39;
+  --line:#27313d; --line-soft:#1b232d;
+  --text:#edf1f6; --text-2:#a6b3c2; --muted:#6f7e8f;
+  --accent:#ffb454; --accent-soft:#4a3316; --accent-ink:#2a1b04;
+  --info:#5bc8ff; --info-soft:#12384d;
+  --good:#4ade80; --warn:#ffc257; --bad:#ff6b6b;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
-  --radius:14px;
+  --radius:16px; --radius-sm:12px; --radius-pill:999px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
 body{
-  background:var(--background); color:var(--text);
-  font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:
+    radial-gradient(1200px 420px at 50% -180px, #1a2432 0%, rgba(26,36,50,0) 70%),
+    var(--bg);
+  color:var(--text);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
   display:flex; flex-direction:column; overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
 }
 button,input{font-family:inherit}
+
 button{
-  background:var(--surface); color:var(--text); border:1px solid var(--line);
-  border-radius:12px; padding:13px 14px; font-size:15px; font-weight:600;
-  min-height:50px; cursor:pointer; transition:background .12s,opacity .12s;
+  position:relative; overflow:hidden;
+  background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:13px 15px; font-size:15px; font-weight:600; letter-spacing:.01em;
+  min-height:50px; cursor:pointer;
+  transition:background .14s ease, transform .1s ease, opacity .14s ease, border-color .14s ease;
 }
-button:active:not([disabled]){background:var(--surface-high)}
-button[disabled]{opacity:.42;cursor:default}
-button.primary{background:var(--accent);border-color:var(--accent);color:#04121f;flex:1}
+button:active:not([disabled]){background:var(--surface-3);transform:scale(.985)}
+button[disabled]{opacity:.4;cursor:default}
+button.primary{
+  background:linear-gradient(180deg,#ffc571,var(--accent));
+  border-color:#e39c37; color:var(--accent-ink); flex:1;
+  font-weight:700; box-shadow:0 6px 18px -8px rgba(255,180,84,.75);
+}
+button.primary:active:not([disabled]){background:linear-gradient(180deg,var(--accent),#e9a343)}
+button.ghost{background:transparent;border-color:var(--line)}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
 input[type=url],input[type=search]{
-  width:100%; background:var(--surface); border:1px solid var(--line); border-radius:12px;
-  color:var(--text); font-size:16px; padding:14px; min-height:52px; outline:none;
+  width:100%; background:var(--bg-lift); border:1px solid var(--line);
+  border-radius:var(--radius-sm); color:var(--text); font-size:16px;
+  padding:15px 14px; min-height:54px; outline:none;
   -webkit-appearance:none; appearance:none;
+  transition:border-color .14s ease, background .14s ease;
 }
 input::placeholder{color:var(--muted)}
-input:focus{border-color:var(--accent)}
+input:focus{border-color:var(--accent);background:#11161d}
 
 .view{display:none;flex:1;flex-direction:column;min-height:0}
 .view.on{display:flex}
 
 .bar{
-  flex:none; display:flex; align-items:center; gap:9px;
-  padding:calc(10px + var(--safe-top)) 14px 10px; border-bottom:1px solid var(--line);
+  flex:none; display:flex; align-items:center; gap:10px;
+  padding:calc(12px + var(--safe-top)) 16px 12px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg,rgba(21,26,33,.9),rgba(10,12,16,0));
+  backdrop-filter:saturate(140%) blur(8px);
 }
-.brand{font-weight:700;font-size:15px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
-.dot.on{background:var(--success)}
-.dot.off{background:var(--warning)}
+.mark{
+  width:30px;height:30px;flex:none;border-radius:9px;
+  background:linear-gradient(160deg,#ffc571,#e2913a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;line-height:1;
+  box-shadow:0 4px 14px -6px rgba(255,180,84,.9);
+}
+.brand{font-weight:700;font-size:16px;letter-spacing:-.01em}
+.tvpill{
+  margin-left:auto; display:flex; align-items:center; gap:7px;
+  max-width:56%; padding:6px 11px 6px 9px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-pill);
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.on{background:var(--good);box-shadow:0 0 0 3px rgba(74,222,128,.16)}
+.dot.off{background:var(--warn);box-shadow:0 0 0 3px rgba(255,194,87,.14)}
 .tvlabel{
-  margin-left:auto; font-size:12px; color:var(--muted); text-align:right;
-  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:12px; color:var(--text-2); min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
-.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.compose{padding:14px}
-.row{display:flex;gap:10px;margin-top:10px}
-.status{margin:12px 2px 0;font-size:13px;color:var(--muted);min-height:18px;line-height:1.35;overflow-wrap:anywhere}
-.status.busy{color:var(--accent)}
-.status.good{color:var(--success)}
-.status.warn{color:var(--warning)}
-.status.bad{color:var(--danger)}
+.compose{flex:none;padding:16px 16px 4px}
+.row{display:flex;gap:10px;margin-top:11px}
+.row:first-child{margin-top:0}
 
-.card{margin:0 14px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.status{
+  margin:12px 3px 4px; font-size:13px; color:var(--muted);
+  min-height:17px; line-height:1.4; overflow-wrap:anywhere;
+}
+.status.busy{color:var(--info)}
+.status.good{color:var(--good)}
+.status.warn{color:var(--warn)}
+.status.bad{color:var(--bad)}
+
+.slot{flex:none}
+.activity{padding:4px 16px 0}
+.activity[hidden]{display:none}
+.job{
+  margin-bottom:10px; padding:13px 14px;
+  background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:0 10px 26px -22px #000;
+}
+.job:last-child{margin-bottom:0}
+.jobhead{display:flex;align-items:center;gap:9px}
+.spinner{
+  width:15px;height:15px;flex:none;border-radius:50%;
+  border:2px solid var(--info-soft); border-top-color:var(--info);
+  animation:spin .8s linear infinite;
+}
+.spinner.save{border-color:var(--accent-soft);border-top-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.jobstage{font-size:14px;font-weight:650;letter-spacing:-.005em;flex:1;min-width:0}
+.jobpercent{font-size:12px;font-weight:700;color:var(--text-2);font-variant-numeric:tabular-nums}
+.joblabel{
+  margin-top:4px;font-size:12.5px;color:var(--text-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.jobdetail{margin-top:2px;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.rail{margin-top:10px;height:4px;border-radius:2px;background:var(--line-soft);overflow:hidden}
+.rail span{display:block;height:100%;border-radius:2px;background:var(--info);transition:width .35s ease}
+.rail.save span{background:linear-gradient(90deg,#e2913a,var(--accent))}
+.rail.wait span{
+  width:36% !important;
+  background:linear-gradient(90deg,rgba(91,200,255,0),var(--info),rgba(91,200,255,0));
+  animation:sweep 1.25s ease-in-out infinite;
+}
+@keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+
+.toast{
+  position:fixed; left:16px; right:16px; z-index:20;
+  bottom:calc(18px + var(--safe-bottom));
+  display:flex; align-items:center; gap:10px;
+  padding:13px 15px; border-radius:var(--radius);
+  background:rgba(27,34,43,.97); border:1px solid var(--line);
+  box-shadow:0 18px 40px -18px #000;
+  font-size:14px; font-weight:600;
+  transform:translateY(140%); opacity:0;
+  transition:transform .3s cubic-bezier(.2,.9,.3,1), opacity .3s ease;
+  pointer-events:none;
+}
+.toast.on{transform:translateY(0);opacity:1}
+.toast .tick{
+  width:20px;height:20px;flex:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;background:var(--good);color:#04210f;
+}
+.toast.bad .tick{background:var(--bad);color:#2b0707}
+.toast .body{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.card{
+  flex:none; margin:12px 16px 4px; padding:15px;
+  background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:0 12px 30px -24px #000;
+}
 .card[hidden]{display:none}
-.cardtitle{font-size:16px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
-.cardmeta{margin-top:4px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
-.group{margin-top:13px}
-.group[hidden]{display:none}
-.grouplabel{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
-.chip{
-  background:var(--surface-high); border:1px solid var(--line); color:var(--text);
-  border-radius:999px; padding:9px 14px; font-size:14px; min-height:42px;
+.cardkicker{
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;margin-bottom:6px;
 }
-.chip.on{background:var(--accent);border-color:var(--accent);color:#04121f}
+.cardtitle{font-size:17px;font-weight:700;line-height:1.28;letter-spacing:-.015em;overflow-wrap:anywhere}
+.cardmeta{margin-top:6px;font-size:12.5px;color:var(--text-2);overflow-wrap:anywhere}
+.cardwarning{
+  margin-top:10px;padding:9px 11px;border-radius:10px;
+  background:rgba(255,194,87,.1);border:1px solid rgba(255,194,87,.32);
+  font-size:12px;color:var(--warn);overflow-wrap:anywhere;
+}
+.cardwarning[hidden]{display:none}
 
-.tabs{display:flex;gap:10px;padding:14px;padding-bottom:calc(14px + var(--safe-bottom))}
-.tabs button{flex:1;font-size:14px;padding:12px 6px}
-.count{color:var(--muted);font-weight:700}
+.sectionlabel{
+  flex:none; display:flex; align-items:baseline; gap:8px;
+  padding:16px 18px 8px; font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); font-weight:700;
+}
+.count{
+  margin-left:auto; color:var(--text-2); font-weight:700;
+  letter-spacing:.04em; font-variant-numeric:tabular-nums;
+}
+
+.list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(26px + var(--safe-bottom))}
+.item{
+  display:flex; align-items:center; gap:11px;
+  margin-bottom:9px; padding:13px 13px 13px 14px;
+  background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm);
+  transition:background .14s ease, border-color .14s ease;
+}
+.item:active{background:var(--surface-2)}
+.item.busy{border-color:var(--accent);background:var(--surface-2)}
+.item .body{flex:1;min-width:0}
+.item .name{font-size:15px;font-weight:650;line-height:1.32;letter-spacing:-.012em;overflow-wrap:anywhere}
+.item .sub{margin-top:4px;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.item button{min-height:40px;padding:8px 12px;font-size:13px;flex:none;border-radius:10px}
+.item button.play{background:var(--surface-3);border-color:var(--line)}
+.item button.forget{background:transparent;color:var(--text-2);border-color:var(--line-soft)}
+
+.empty{
+  padding:40px 16px; color:var(--muted); font-size:14px;
+  text-align:center; line-height:1.6;
+  border:1px dashed var(--line); border-radius:var(--radius);
+}
+.empty b{display:block;color:var(--text-2);font-size:15px;font-weight:650;margin-bottom:6px}
+
+.skeleton{margin-bottom:9px;height:66px;border-radius:var(--radius-sm);background:var(--surface);overflow:hidden;position:relative}
+.skeleton::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.045),rgba(255,255,255,0));
+  animation:sweep 1.4s ease-in-out infinite;
+}
+
+.drawer{
+  flex:none; display:flex; gap:10px; flex-wrap:wrap;
+  padding:12px 16px calc(14px + var(--safe-bottom));
+  border-top:1px solid var(--line-soft);
+  background:linear-gradient(0deg,rgba(21,26,33,.92),rgba(10,12,16,0));
+}
+.drawer button{flex:1;min-width:126px;font-size:14px;padding-bottom:15px}
+.badge{
+  display:inline-block; margin-left:7px; padding:2px 8px;
+  border-radius:var(--radius-pill); font-size:11px; font-weight:800;
+  background:var(--surface-3); color:var(--text-2);
+  font-variant-numeric:tabular-nums;
+}
+.badge[hidden]{display:none}
+.badge.live{background:var(--accent);color:var(--accent-ink)}
+.underbar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);transition:width .35s ease}
 
 .listhead{
-  flex:none; display:flex; align-items:center; gap:10px;
-  padding:calc(10px + var(--safe-top)) 14px 10px; border-bottom:1px solid var(--line);
+  flex:none; display:flex; align-items:center; gap:11px;
+  padding:calc(12px + var(--safe-top)) 16px 12px;
+  border-bottom:1px solid var(--line-soft);
 }
-.listhead .title{font-weight:700;font-size:15px;flex:1;min-width:0}
-.small{min-height:42px;padding:9px 13px;font-size:14px;flex:none}
-.searchwrap{flex:none;padding:12px 14px 0}
+.listhead .title{font-weight:700;font-size:16px;flex:1;min-width:0;letter-spacing:-.015em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.small{min-height:42px;padding:9px 14px;font-size:13.5px;flex:none;border-radius:10px}
+.searchwrap{flex:none;padding:14px 16px 0}
 .searchwrap[hidden]{display:none}
-.liststatus{flex:none;margin:10px 16px 0}
-.list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 14px calc(30px + var(--safe-bottom))}
-.item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
-.item .body{flex:1;min-width:0}
-.item .name{font-size:15px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
-.item .sub{margin-top:3px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
-.empty{padding:28px 4px;color:var(--muted);font-size:14px;text-align:center;line-height:1.5}
-.progress{height:5px;border-radius:3px;background:var(--surface-high);overflow:hidden;margin-top:8px}
-.progress span{display:block;height:100%;background:var(--accent);transition:width .3s}
-.progress.failed span{background:var(--danger)}
+.liststatus{margin:10px 19px 0}
 </style>
 </head>
 <body>
 
 <div class="view on" id="homeView">
   <div class="bar">
-    <span class="dot" id="televisionDot"></span>
-    <span class="brand">tvcast</span>
-    <span class="tvlabel" id="televisionLabel">checking the tv</span>
+    <span class="mark" aria-hidden="true">&#128057;</span>
+    <span class="brand">capyTV</span>
+    <span class="tvpill">
+      <span class="dot" id="televisionDot"></span>
+      <span class="tvlabel" id="televisionLabel">checking the tv</span>
+    </span>
   </div>
 
-  <div class="scroll">
-    <div class="compose">
-      <input id="linkInput" type="url" inputmode="url" enterkeyhint="send" placeholder="paste a link"
-             autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
-      <div class="row">
-        <button id="sendButton" class="primary">send to tv</button>
-        <button id="downloadButton">download</button>
-      </div>
-      <div class="row">
-        <button id="subtitleEarlierButton">subs 0.5s earlier</button>
-        <button id="subtitleLaterButton">subs 0.5s later</button>
-      </div>
-      <p class="status" id="statusLine"></p>
+  <div class="compose">
+    <input id="linkInput" type="url" inputmode="url" enterkeyhint="send" placeholder="paste a link"
+           autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+    <div class="row">
+      <button id="sendButton" class="primary">send to tv</button>
     </div>
+    <p class="status" id="statusLine"></p>
+  </div>
 
-    <div class="card" id="card" hidden>
-      <div class="cardtitle" id="cardTitle"></div>
-      <div class="cardmeta" id="cardMeta"></div>
-      <div class="group" id="subtitleGroup">
-        <div class="grouplabel">subtitles</div>
-        <div class="chips" id="subtitleChips"></div>
-      </div>
-      <div class="group" id="qualityGroup">
-        <div class="grouplabel">quality</div>
-        <div class="chips" id="qualityChips"></div>
-      </div>
-    </div>
+  <div class="slot" id="homeActivitySlot"></div>
 
-    <div class="tabs">
-      <button data-list="tv">on the tv <span class="count" id="televisionCount"></span></button>
-      <button data-list="library">library</button>
-      <button data-list="downloads">downloads</button>
-    </div>
+  <div class="card" id="card" hidden>
+    <div class="cardkicker" id="cardKicker">sent to the tv</div>
+    <div class="cardtitle" id="cardTitle"></div>
+    <div class="cardmeta" id="cardMeta"></div>
+    <div class="cardwarning" id="cardWarning" hidden></div>
+  </div>
+
+  <div class="sectionlabel">everything you have sent<span class="count" id="homeCount"></span></div>
+  <div class="list" id="homeList"></div>
+
+  <div class="drawer" id="drawer">
+    <button id="downloadsButton">downloads<span class="badge" id="downloadsBadge" hidden></span><span class="underbar" id="downloadsBar"></span></button>
   </div>
 </div>
 
 <div class="view" id="listView">
   <div class="listhead">
-    <button class="small back" id="backButton">back</button>
+    <button class="small back ghost" id="backButton">back</button>
     <span class="title" id="listTitle"></span>
     <button class="small" id="listAction" hidden></button>
   </div>
+  <div class="compose" id="downloadCompose" hidden>
+    <input id="downloadInput" type="url" inputmode="url" enterkeyhint="go" placeholder="paste a link to save on the pc"
+           autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+    <div class="row">
+      <button id="downloadButton" class="primary">save to the pc</button>
+    </div>
+  </div>
   <div class="searchwrap" id="searchWrap" hidden>
-    <input id="searchInput" type="search" placeholder="search the library"
+    <input id="searchInput" type="search" placeholder="search the saved media"
            autocomplete="off" autocapitalize="none" spellcheck="false">
   </div>
   <p class="status liststatus" id="listStatus"></p>
+  <div class="slot" id="listActivitySlot"></div>
   <div class="list" id="list"></div>
 </div>
+
+<div class="activity" id="activityPanel" hidden></div>
+<div class="toast" id="toast"><span class="tick" id="toastTick">&#10003;</span><span class="body" id="toastBody"></span></div>
 
 <script>
 (function () {
 'use strict';
 
 var EMPTY_STRING = '';
-var SUBTITLE_OFF = '';
 var FILE_PREFIX = 'file:';
-var LIST_TELEVISION = 'tv';
-var LIST_LIBRARY = 'library';
-var LIST_DOWNLOADS = 'downloads';
+var MAIN_COLLECTION = 'main';
+var VIEW_HOME = 'home';
+var VIEW_DOWNLOADS = 'downloads';
+var VIEW_COLLECTION = 'collection';
 var REQUEST_TIMEOUT_MILLISECONDS = 15000;
-var SLOW_REQUEST_TIMEOUT_MILLISECONDS = 120000;
-var POLL_INTERVAL_MILLISECONDS = 5000;
+var SLOW_REQUEST_TIMEOUT_MILLISECONDS = 180000;
+var IDLE_POLL_MILLISECONDS = 4000;
+var LIVE_POLL_MILLISECONDS = 700;
+var TELEVISION_POLL_MILLISECONDS = 5000;
 var SEARCH_DEBOUNCE_MILLISECONDS = 250;
-var SUBTITLE_NUDGE_MILLISECONDS = 500;
+var TOAST_DURATION_MILLISECONDS = 3600;
 var MILLISECONDS_PER_SECOND = 1000;
 var SECONDS_PER_MINUTE = 60;
 var SECONDS_PER_HOUR = 3600;
 var BYTES_PER_GIGABYTE = 1073741824;
 var BYTES_PER_MEGABYTE = 1048576;
 var COMPLETE_PERCENT = 100;
+var INDETERMINATE_PERCENT = -1;
+var NO_ITEMS = 0;
+var FIRST_INDEX = 0;
+var KIND_DOWNLOAD = 'download';
+var OUTCOME_FAILED = 'failed';
+var SKELETON_ROWS = 3;
 
 var elements = {};
 var nodes = document.querySelectorAll('[id]');
@@ -194,17 +359,20 @@ for (var index = 0; index < nodes.length; index += 1) {
 }
 
 var state = {
-    offer: null,
-    chosenSubtitleId: SUBTITLE_OFF,
-    chosenRenditionId: EMPTY_STRING,
     busy: false,
-    listKind: EMPTY_STRING,
+    view: VIEW_HOME,
+    openCollection: EMPTY_STRING,
     listError: EMPTY_STRING,
     searchTerm: EMPTY_STRING,
-    catalogue: [],
-    library: [],
-    libraryTotal: 0,
-    downloads: []
+    loadedOnce: false,
+    mainLinks: [],
+    collectionLinks: [],
+    collections: [],
+    savedMedia: [],
+    downloads: [],
+    running: [],
+    localJob: null,
+    announcedActivityIds: {}
 };
 
 function createElement(tagName, className, text) {
@@ -310,6 +478,27 @@ function applyBusyState() {
     elements.sendButton.textContent = state.busy ? 'working' : 'send to tv';
 }
 
+// Waiting for the next poll to notice means up to a second of nothing after a tap, and a job
+// the pc finishes faster than that is never shown at all. Say what was asked for straight
+// away, and let the real stages from the pc take over as they arrive.
+function showLocalJob(stage) {
+    state.localJob = {
+        id: 'local',
+        kind: 'resolve',
+        label: EMPTY_STRING,
+        stage: stage,
+        detail: EMPTY_STRING,
+        percent: INDETERMINATE_PERCENT,
+        outcome: 'running'
+    };
+    renderActivity();
+}
+
+function clearLocalJob() {
+    state.localJob = null;
+    renderActivity();
+}
+
 async function runExclusive(busyMessage, work) {
     if (state.busy) {
         return;
@@ -317,6 +506,8 @@ async function runExclusive(busyMessage, work) {
     state.busy = true;
     setStatus(busyMessage, 'busy');
     applyBusyState();
+    showLocalJob(busyMessage);
+    pollActivity();
     try {
         await work();
     } catch (error) {
@@ -324,11 +515,13 @@ async function runExclusive(busyMessage, work) {
     } finally {
         state.busy = false;
         applyBusyState();
+        clearLocalJob();
+        pollActivity();
     }
 }
 
-function readLink() {
-    var link = elements.linkInput.value.trim();
+function readLink(inputElement) {
+    var link = inputElement.value.trim();
     if (/^https?:\/\//i.test(link) === false) {
         setStatus('that needs to be a link starting with http', 'bad');
         return EMPTY_STRING;
@@ -344,184 +537,163 @@ function reportDelivery(result) {
     }
 }
 
-async function deliverOffer() {
-    var result = await callApi('/api/send', {
-        method: 'POST',
-        timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
-        body: {
-            offerId: state.offer.offerId,
-            subtitleId: state.chosenSubtitleId,
-            renditionId: state.chosenRenditionId
-        }
-    });
-    reportDelivery(result);
-    if (result.subtitleOffsetMeasured === false && state.chosenSubtitleId !== SUBTITLE_OFF) {
-        setStatus(elements.statusLine.textContent
-            + '. checking the subtitle timing against the audio, it self corrects in a few minutes',
-            result.delivered ? 'good' : 'warn');
-    }
-    await loadCatalogue();
-}
-
-function sendPastedLink() {
-    var link = readLink();
-    if (link === EMPTY_STRING) {
-        return;
-    }
-    runExclusive('looking that link up, this takes a moment', async function () {
-        var offer = await callApi('/api/resolve', {
-            method: 'POST',
-            timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
-            body: { url: link }
-        });
-        state.offer = offer;
-        state.chosenSubtitleId = offer.subtitles.length > 0 ? offer.subtitles[0].id : SUBTITLE_OFF;
-        state.chosenRenditionId = offer.selectedRenditionId || EMPTY_STRING;
-        renderCard();
-        setStatus('sending ' + offer.title + ' to the tv', 'busy');
-        await deliverOffer();
-    });
-}
-
-function chooseSubtitle(subtitleId) {
-    if (state.offer === null || state.chosenSubtitleId === subtitleId) {
-        return;
-    }
-    state.chosenSubtitleId = subtitleId;
-    renderCard();
-    runExclusive('switching subtitles on the tv', deliverOffer);
-}
-
-function chooseRendition(renditionId) {
-    if (state.offer === null || state.chosenRenditionId === renditionId) {
-        return;
-    }
-    state.chosenRenditionId = renditionId;
-    renderCard();
-    runExclusive('switching quality on the tv', deliverOffer);
-}
-
-function buildChip(text, isSelected, onTap) {
-    return createButton(isSelected ? 'chip on' : 'chip', text, onTap);
-}
-
-function renderCard() {
-    var offer = state.offer;
-    if (offer === null) {
+function renderCard(result) {
+    if (result === null) {
         elements.card.hidden = true;
         return;
     }
     elements.card.hidden = false;
-    elements.cardTitle.textContent = offer.title;
+    elements.cardKicker.textContent = result.delivered ? 'playing on the tv' : 'waiting for the tv';
+    elements.cardTitle.textContent = result.title;
 
     var parts = [];
-    if (offer.quality !== EMPTY_STRING) {
-        parts.push(offer.quality);
+    if (result.quality !== EMPTY_STRING) {
+        parts.push(result.quality);
     }
-    if (offer.provider !== EMPTY_STRING) {
-        parts.push(offer.provider);
+    if (result.provider !== EMPTY_STRING) {
+        parts.push(result.provider);
     }
-    var runtime = formatRuntime(offer.durationSeconds);
+    var runtime = formatRuntime(Math.floor(result.durationMilliseconds / MILLISECONDS_PER_SECOND));
     if (runtime !== EMPTY_STRING) {
         parts.push(runtime);
     }
-    if (offer.resumeMilliseconds > 0) {
-        parts.push('resumes at ' + formatClock(offer.resumeMilliseconds));
+    var subtitleCount = (result.subtitles || []).length;
+    if (subtitleCount === 0) {
+        parts.push('no subtitles offered');
+    } else if (result.selectedSubtitleId === EMPTY_STRING) {
+        parts.push('subtitles off');
+    } else {
+        parts.push('subtitles on \u00b7 ' + subtitleCount + ' tracks');
     }
-    elements.cardMeta.textContent = parts.join(' · ');
-
-    var subtitleChoices = [{ id: SUBTITLE_OFF, language: 'off' }].concat(offer.subtitles);
-    var subtitleChips = subtitleChoices.map(function (track) {
-        return buildChip(track.language, track.id === state.chosenSubtitleId, function () {
-            chooseSubtitle(track.id);
-        });
-    });
-    elements.subtitleChips.replaceChildren.apply(elements.subtitleChips, subtitleChips);
-
-    elements.qualityGroup.hidden = offer.renditions.length < 2;
-    var qualityChips = offer.renditions.map(function (rendition) {
-        return buildChip(rendition.label, rendition.id === state.chosenRenditionId, function () {
-            chooseRendition(rendition.id);
-        });
-    });
-    elements.qualityChips.replaceChildren.apply(elements.qualityChips, qualityChips);
+    if (result.resumeMilliseconds > 0) {
+        parts.push('resumed at ' + formatClock(result.resumeMilliseconds));
+    }
+    elements.cardMeta.textContent = parts.join(' \u00b7 ');
+    var warning = result.subtitleWarning || EMPTY_STRING;
+    elements.cardWarning.textContent = warning;
+    elements.cardWarning.hidden = warning === EMPTY_STRING;
 }
 
-function sendExisting(publicationId, title) {
-    runExclusive('sending ' + title + ' to the tv', async function () {
+async function sendUrlToTelevision(link, collection) {
+    var body = { url: link };
+    if (collection !== undefined && collection !== EMPTY_STRING) {
+        body.collection = collection;
+    }
+    var result = await callApi('/api/send', {
+        method: 'POST',
+        timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
+        body: body
+    });
+    renderCard(result);
+    reportDelivery(result);
+    return result;
+}
+
+function sendPastedLink() {
+    var link = readLink(elements.linkInput);
+    if (link === EMPTY_STRING) {
+        return;
+    }
+    runExclusive('looking that link up, this takes a moment', async function () {
+        await sendUrlToTelevision(link, MAIN_COLLECTION);
+        await loadMainLinks();
+    });
+}
+
+function playStoredLink(link, collection) {
+    runExclusive('loading the freshest version of ' + link.title, async function () {
+        await sendUrlToTelevision(link.url, collection);
+        if (collection === MAIN_COLLECTION) {
+            await loadMainLinks();
+        } else {
+            await loadCollectionLinks();
+            renderList();
+        }
+    });
+}
+
+function forgetLink(link, collection) {
+    runExclusive('forgetting that link', async function () {
+        await callApi('/api/links/' + encodeURIComponent(link.url), { method: 'DELETE' });
+        if (collection === MAIN_COLLECTION) {
+            await loadMainLinks();
+        } else {
+            await loadCollectionLinks();
+            renderList();
+        }
+        await loadCollections();
+        setStatus('forgotten', 'good');
+    });
+}
+
+function playSavedMedia(item) {
+    runExclusive('sending ' + item.title + ' to the tv', async function () {
         var result = await callApi('/api/send', {
             method: 'POST',
             timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS,
-            body: { publicationId: publicationId }
+            body: { publicationId: FILE_PREFIX + item.id }
         });
+        renderCard(result);
         reportDelivery(result);
     });
 }
 
-function removeItem(publicationId) {
-    runExclusive('removing that from the tv list', async function () {
-        await callApi('/api/catalogue/' + publicationId, { method: 'DELETE' });
-        await loadCatalogue();
-        setStatus('removed', 'good');
-    });
-}
-
 function startDownload() {
-    var link = readLink();
+    var link = readLink(elements.downloadInput);
     if (link === EMPTY_STRING) {
         return;
     }
     runExclusive('starting the download', async function () {
         await callApi('/api/download', { method: 'POST', body: { url: link } });
-        setStatus('downloading, the progress is in the downloads list', 'good');
+        setStatus('downloading onto the pc, progress is below', 'good');
         await loadDownloads();
+        renderList();
     });
 }
 
-function rescanLibrary() {
-    runExclusive('scanning the library', async function () {
+function rescanSavedMedia() {
+    runExclusive('scanning the saved media', async function () {
         var result = await callApi('/api/scan', {
             method: 'POST',
             timeout: SLOW_REQUEST_TIMEOUT_MILLISECONDS
         });
-        await loadLibrary();
-        setStatus(result.count + ' videos in the library', 'good');
+        await loadSavedMedia();
+        renderList();
+        setStatus(result.count + ' videos saved on the pc', 'good');
     });
 }
 
-function isPublished(item) {
-    return item.id.indexOf(FILE_PREFIX) !== 0;
+async function loadMainLinks() {
+    var payload = await callApi('/api/links?collection=' + encodeURIComponent(MAIN_COLLECTION));
+    state.mainLinks = payload.items || [];
+    state.loadedOnce = true;
+    renderHomeList();
 }
 
-async function loadCatalogue() {
-    var payload = await callApi('/api/catalogue');
-    state.catalogue = (payload.items || []).filter(isPublished);
-    elements.televisionCount.textContent = state.catalogue.length === 0
-        ? EMPTY_STRING
-        : String(state.catalogue.length);
-    if (state.listKind === LIST_TELEVISION) {
-        renderList();
-    }
+async function loadCollectionLinks() {
+    var payload = await callApi('/api/links?collection=' + encodeURIComponent(state.openCollection));
+    state.collectionLinks = payload.items || [];
 }
 
-async function loadLibrary() {
+async function loadCollections() {
+    var payload = await callApi('/api/collections');
+    state.collections = (payload.items || []).filter(function (entry) {
+        return entry.name !== MAIN_COLLECTION;
+    });
+    renderDrawer();
+}
+
+async function loadSavedMedia() {
     var query = state.searchTerm === EMPTY_STRING
         ? EMPTY_STRING
         : '?q=' + encodeURIComponent(state.searchTerm);
     var payload = await callApi('/api/library' + query);
-    state.library = payload.items || [];
-    state.libraryTotal = payload.total || 0;
-    if (state.listKind === LIST_LIBRARY) {
-        renderList();
-    }
+    state.savedMedia = payload.items || [];
 }
 
 async function loadDownloads() {
     var payload = await callApi('/api/downloads');
     state.downloads = payload.jobs || [];
-    if (state.listKind === LIST_DOWNLOADS) {
-        renderList();
-    }
 }
 
 async function loadTelevisionStatus() {
@@ -530,27 +702,137 @@ async function loadTelevisionStatus() {
     elements.televisionDot.className = located ? 'dot on' : 'dot off';
     var label = located ? status.address : 'tv not located yet';
     if (status.hasPending) {
-        label = label + ' · 1 waiting';
+        label = label + ' \u00b7 1 waiting';
     }
     elements.televisionLabel.textContent = label;
 }
 
-function describePublication(item) {
-    var parts = [];
-    if (item.quality !== EMPTY_STRING) {
-        parts.push(item.quality);
+function describeActivityTone(entry) {
+    return entry.kind === KIND_DOWNLOAD ? 'save' : 'load';
+}
+
+function buildActivityRow(entry) {
+    var job = createElement('div', 'job');
+    var head = createElement('div', 'jobhead');
+    var isDownload = describeActivityTone(entry) === 'save';
+    head.appendChild(createElement('div', isDownload ? 'spinner save' : 'spinner'));
+    head.appendChild(createElement('div', 'jobstage', entry.stage));
+    if (entry.percent >= 0) {
+        head.appendChild(createElement('div', 'jobpercent', Math.round(entry.percent) + '%'));
     }
-    if (item.provider !== EMPTY_STRING) {
-        parts.push(item.provider);
+    job.appendChild(head);
+    if (entry.label !== EMPTY_STRING) {
+        job.appendChild(createElement('div', 'joblabel', entry.label));
     }
-    var chosen = (item.subtitles || []).filter(function (track) {
-        return track.id === item.selectedSubtitleId;
-    })[0];
-    parts.push(chosen === undefined ? 'no subtitles' : chosen.language);
-    if (item.subtitleOffsetMilliseconds !== 0) {
-        parts.push('subs ' + (item.subtitleOffsetMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1) + ' s');
+    if (entry.detail !== EMPTY_STRING) {
+        job.appendChild(createElement('div', 'jobdetail', entry.detail));
     }
-    return parts.join(' · ');
+    var railClass = 'rail';
+    if (entry.percent < 0) {
+        railClass = railClass + ' wait';
+    } else if (isDownload) {
+        railClass = railClass + ' save';
+    }
+    var rail = createElement('div', railClass);
+    var fill = createElement('span');
+    fill.style.width = (entry.percent < 0 ? COMPLETE_PERCENT : entry.percent) + '%';
+    rail.appendChild(fill);
+    job.appendChild(rail);
+    return job;
+}
+
+function renderActivity() {
+    var running = state.running;
+    if (running.length === NO_ITEMS && state.localJob !== null) {
+        running = [state.localJob];
+    }
+    elements.activityPanel.hidden = running.length === NO_ITEMS;
+    var children = [];
+    for (var entryIndex = 0; entryIndex < running.length; entryIndex += 1) {
+        children.push(buildActivityRow(running[entryIndex]));
+    }
+    elements.activityPanel.replaceChildren.apply(elements.activityPanel, children);
+    renderDownloadIndicator();
+}
+
+function activeDownloads() {
+    return state.running.filter(function (entry) {
+        return entry.kind === KIND_DOWNLOAD;
+    });
+}
+
+function renderDownloadIndicator() {
+    var jobs = activeDownloads();
+    var badge = elements.downloadsBadge;
+    var bar = elements.downloadsBar;
+    if (jobs.length === NO_ITEMS) {
+        badge.hidden = true;
+        bar.style.width = '0%';
+        return;
+    }
+    badge.hidden = false;
+    badge.className = 'badge live';
+    badge.textContent = String(jobs.length);
+    var measured = jobs.filter(function (entry) {
+        return entry.percent >= 0;
+    });
+    if (measured.length === NO_ITEMS) {
+        bar.style.width = '4%';
+    } else {
+        var total = measured.reduce(function (sum, entry) {
+            return sum + entry.percent;
+        }, 0);
+        bar.style.width = Math.round(total / measured.length) + '%';
+    }
+}
+
+function showToast(message, isFailure) {
+    elements.toastBody.textContent = message;
+    elements.toastTick.textContent = isFailure ? '!' : '\u2713';
+    elements.toast.className = isFailure ? 'toast bad on' : 'toast on';
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(function () {
+        elements.toast.className = elements.toast.className.replace(' on', EMPTY_STRING);
+    }, TOAST_DURATION_MILLISECONDS);
+}
+
+function announceFinished(finished) {
+    for (var entryIndex = finished.length - 1; entryIndex >= FIRST_INDEX; entryIndex -= 1) {
+        var entry = finished[entryIndex];
+        if (state.announcedActivityIds[entry.id] === undefined) {
+            state.announcedActivityIds[entry.id] = true;
+            var failed = entry.outcome === OUTCOME_FAILED;
+            var text = failed ? entry.stage + ': ' + entry.detail : entry.stage;
+            if (failed === false && entry.label !== EMPTY_STRING) {
+                text = entry.stage + ' \u00b7 ' + entry.label;
+            }
+            showToast(text, failed);
+        }
+    }
+}
+
+var announcedFirstSnapshot = false;
+
+async function pollActivity() {
+    var snapshot = null;
+    try {
+        snapshot = await callApi('/api/activity');
+    } catch (error) {
+        state.running = [];
+        renderActivity();
+        return;
+    }
+    state.running = snapshot.running || [];
+    var finished = snapshot.finished || [];
+    if (announcedFirstSnapshot === false) {
+        announcedFirstSnapshot = true;
+        for (var seenIndex = 0; seenIndex < finished.length; seenIndex += 1) {
+            state.announcedActivityIds[finished[seenIndex].id] = true;
+        }
+    } else {
+        announceFinished(finished);
+    }
+    renderActivity();
 }
 
 function buildRow(name, detail, actions) {
@@ -567,144 +849,207 @@ function buildRow(name, detail, actions) {
     return row;
 }
 
-function renderTelevisionList() {
-    if (state.catalogue.length === 0) {
-        return [createElement('div', 'empty', 'nothing sent yet, paste a link on the first screen')];
+function buildEmptyState(headline, hint) {
+    var box = createElement('div', 'empty');
+    box.appendChild(createElement('b', EMPTY_STRING, headline));
+    box.appendChild(document.createTextNode(hint));
+    return box;
+}
+
+function buildSkeletons() {
+    var rows = [];
+    for (var rowIndex = 0; rowIndex < SKELETON_ROWS; rowIndex += 1) {
+        rows.push(createElement('div', 'skeleton'));
     }
-    return state.catalogue.map(function (item) {
-        return buildRow(item.title, describePublication(item), [
-            createButton('small', 'play', function () {
-                sendExisting(item.id, item.title);
+    return rows;
+}
+
+function buildLinkRows(links, collection, headline, hint) {
+    if (links.length === NO_ITEMS) {
+        return [buildEmptyState(headline, hint)];
+    }
+    return links.map(function (link) {
+        return buildRow(link.title, link.url, [
+            createButton('small play', 'play', function () {
+                playStoredLink(link, collection);
             }),
-            createButton('small', 'remove', function () {
-                removeItem(item.id);
+            createButton('small forget', 'forget', function () {
+                forgetLink(link, collection);
             })
         ]);
     });
 }
 
-function renderLibraryList() {
-    if (state.library.length === 0) {
-        var message = state.searchTerm === EMPTY_STRING
-            ? 'the library is empty, try a scan'
-            : 'nothing matched that search';
-        return [createElement('div', 'empty', message)];
+function renderHomeList() {
+    var children = [];
+    if (state.loadedOnce === false) {
+        children = buildSkeletons();
+    } else {
+        children = buildLinkRows(state.mainLinks, MAIN_COLLECTION,
+            'nothing here yet', 'paste a link above and it lands here');
     }
-    return state.library.map(function (item) {
-        var detail = [item.folder, formatSize(item.sizeBytes)];
-        detail.push(item.hasSubtitle ? 'subtitles' : 'no subtitles');
-        return buildRow(item.title, detail.join(' · '), [
-            createButton('small', 'play', function () {
-                sendExisting(FILE_PREFIX + item.id, item.title);
-            })
-        ]);
+    elements.homeCount.textContent = state.loadedOnce ? String(state.mainLinks.length) : EMPTY_STRING;
+    elements.homeList.replaceChildren.apply(elements.homeList, children);
+}
+
+function renderDrawer() {
+    var children = [elements.downloadsButton];
+    for (var collectionIndex = 0; collectionIndex < state.collections.length; collectionIndex += 1) {
+        children.push(buildCollectionButton(state.collections[collectionIndex]));
+    }
+    elements.drawer.replaceChildren.apply(elements.drawer, children);
+}
+
+function buildCollectionButton(collection) {
+    var button = createButton(EMPTY_STRING, collection.name, function () {
+        openCollection(collection.name);
     });
+    button.appendChild(createElement('span', 'badge', String(collection.count)));
+    return button;
 }
 
 function renderDownloadsList() {
-    if (state.downloads.length === 0) {
-        return [createElement('div', 'empty', 'no downloads yet')];
-    }
-    return state.downloads.slice().reverse().map(function (job) {
-        var row = createElement('div', 'item');
-        var body = createElement('div', 'body');
-        body.appendChild(createElement('div', 'name', job.url));
-        var stateText = job.line;
-        if (job.failed) {
-            stateText = 'failed: ' + job.line;
-        } else if (job.done) {
-            stateText = 'finished';
+    var children = [];
+    if (state.downloads.length > NO_ITEMS) {
+        var recent = state.downloads.slice().reverse();
+        for (var jobIndex = 0; jobIndex < recent.length; jobIndex += 1) {
+            children.push(buildDownloadRow(recent[jobIndex]));
         }
-        body.appendChild(createElement('div', 'sub', job.percent + '% · ' + stateText));
-        var bar = createElement('div', job.failed ? 'progress failed' : 'progress');
-        var fill = createElement('span');
-        fill.style.width = (job.done && job.failed === false ? COMPLETE_PERCENT : job.percent) + '%';
-        bar.appendChild(fill);
-        body.appendChild(bar);
-        row.appendChild(body);
-        return row;
-    });
+    }
+    if (state.savedMedia.length === NO_ITEMS) {
+        if (state.searchTerm === EMPTY_STRING) {
+            children.push(buildEmptyState('nothing saved on the pc yet',
+                'paste a link above and it downloads into B:\\Media'));
+        } else {
+            children.push(buildEmptyState('nothing matched that search',
+                'try a shorter word'));
+        }
+        return children;
+    }
+    for (var mediaIndex = 0; mediaIndex < state.savedMedia.length; mediaIndex += 1) {
+        children.push(buildSavedMediaRow(state.savedMedia[mediaIndex]));
+    }
+    return children;
+}
+
+function buildSavedMediaRow(item) {
+    var detail = [item.folder, formatSize(item.sizeBytes)];
+    detail.push(item.hasSubtitle ? 'subtitles' : 'no subtitles');
+    return buildRow(item.title, detail.join(' \u00b7 '), [
+        createButton('small play', 'play', function () {
+            playSavedMedia(item);
+        })
+    ]);
+}
+
+function buildDownloadRow(job) {
+    var row = createElement('div', job.done ? 'item' : 'item busy');
+    var body = createElement('div', 'body');
+    body.appendChild(createElement('div', 'name', job.title === EMPTY_STRING ? job.url : job.title));
+    var stateText = job.line;
+    if (job.failed) {
+        stateText = 'failed: ' + job.line;
+    } else if (job.done) {
+        stateText = 'finished';
+    }
+    body.appendChild(createElement('div', 'sub', job.percent + '% \u00b7 ' + stateText));
+    var rail = createElement('div', job.failed ? 'rail' : 'rail save');
+    var fill = createElement('span');
+    fill.style.width = (job.done && job.failed === false ? COMPLETE_PERCENT : job.percent) + '%';
+    if (job.failed) {
+        fill.style.background = 'var(--bad)';
+    }
+    rail.appendChild(fill);
+    body.appendChild(rail);
+    row.appendChild(body);
+    return row;
 }
 
 function renderList() {
     var children = [];
     if (state.listError !== EMPTY_STRING) {
-        children = [createElement('div', 'empty', state.listError)];
-    } else if (state.listKind === LIST_TELEVISION) {
-        children = renderTelevisionList();
-    } else if (state.listKind === LIST_LIBRARY) {
-        children = renderLibraryList();
-    } else {
+        children = [buildEmptyState('cannot reach the pc', state.listError)];
+    } else if (state.view === VIEW_DOWNLOADS) {
         children = renderDownloadsList();
+    } else {
+        children = buildLinkRows(state.collectionLinks, state.openCollection,
+            'nothing in here yet', 'links you send land in their series automatically');
     }
     elements.list.replaceChildren.apply(elements.list, children);
 }
 
-async function refreshCurrentList() {
+async function refreshCurrentView() {
     if (state.busy) {
         return;
     }
     try {
-        if (state.listKind === LIST_TELEVISION) {
-            await loadCatalogue();
-        } else if (state.listKind === LIST_LIBRARY) {
-            await loadLibrary();
-        } else if (state.listKind === LIST_DOWNLOADS) {
+        if (state.view === VIEW_HOME) {
+            await loadMainLinks();
+            await loadCollections();
+        } else if (state.view === VIEW_DOWNLOADS) {
             await loadDownloads();
+            await loadSavedMedia();
+        } else {
+            await loadCollectionLinks();
         }
         state.listError = EMPTY_STRING;
     } catch (error) {
         state.listError = error.message;
     }
-    renderList();
+    if (state.view !== VIEW_HOME) {
+        renderList();
+    }
 }
 
-function openList(kind) {
-    state.listKind = kind;
-    state.listError = EMPTY_STRING;
+function moveActivityPanel(slot) {
+    slot.appendChild(elements.activityPanel);
+}
+
+function showListView(title, actionLabel) {
     elements.homeView.classList.remove('on');
     elements.listView.classList.add('on');
-    elements.searchWrap.hidden = kind !== LIST_LIBRARY;
-    elements.listAction.hidden = kind !== LIST_LIBRARY;
-    elements.listAction.textContent = 'scan';
-    if (kind === LIST_TELEVISION) {
-        elements.listTitle.textContent = 'on the tv';
-    } else if (kind === LIST_LIBRARY) {
-        elements.listTitle.textContent = 'library';
-    } else {
-        elements.listTitle.textContent = 'downloads';
-    }
-    renderList();
-    refreshCurrentList();
+    elements.listTitle.textContent = title;
+    elements.listAction.hidden = actionLabel === EMPTY_STRING;
+    elements.listAction.textContent = actionLabel;
+    state.listError = EMPTY_STRING;
+    moveActivityPanel(elements.listActivitySlot);
 }
 
-function closeList() {
-    state.listKind = EMPTY_STRING;
+function openDownloads() {
+    state.view = VIEW_DOWNLOADS;
+    elements.downloadInput.value = elements.linkInput.value;
+    elements.downloadCompose.hidden = false;
+    elements.searchWrap.hidden = false;
+    showListView('downloads', 'scan');
+    renderList();
+    refreshCurrentView();
+}
+
+function openCollection(name) {
+    state.view = VIEW_COLLECTION;
+    state.openCollection = name;
+    state.collectionLinks = [];
+    elements.downloadCompose.hidden = true;
+    elements.searchWrap.hidden = true;
+    showListView(name, EMPTY_STRING);
+    renderList();
+    refreshCurrentView();
+}
+
+function closeListView() {
+    state.view = VIEW_HOME;
+    state.openCollection = EMPTY_STRING;
     elements.listView.classList.remove('on');
     elements.homeView.classList.add('on');
+    moveActivityPanel(elements.homeActivitySlot);
+    refreshCurrentView();
 }
 
-function nudgeSubtitles(deltaMilliseconds) {
-    runExclusive('shifting the subtitles on the tv', async function () {
-        var result = await callApi('/api/subtitle-offset', {
-            method: 'POST',
-            body: { deltaMilliseconds: deltaMilliseconds }
-        });
-        var seconds = (result.subtitleOffsetMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1);
-        setStatus('subtitles now ' + seconds + ' s from the audio', 'good');
-    });
-}
-
-elements.subtitleEarlierButton.addEventListener('click', function () {
-    nudgeSubtitles(-SUBTITLE_NUDGE_MILLISECONDS);
-});
-elements.subtitleLaterButton.addEventListener('click', function () {
-    nudgeSubtitles(SUBTITLE_NUDGE_MILLISECONDS);
-});
 elements.sendButton.addEventListener('click', sendPastedLink);
+elements.downloadsButton.addEventListener('click', openDownloads);
 elements.downloadButton.addEventListener('click', startDownload);
-elements.backButton.addEventListener('click', closeList);
-elements.listAction.addEventListener('click', rescanLibrary);
+elements.backButton.addEventListener('click', closeListView);
+elements.listAction.addEventListener('click', rescanSavedMedia);
 
 elements.linkInput.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
@@ -714,42 +1059,57 @@ elements.linkInput.addEventListener('keydown', function (event) {
     }
 });
 
-var tabs = document.querySelectorAll('[data-list]');
-for (var tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
-    tabs[tabIndex].addEventListener('click', function (event) {
-        openList(event.currentTarget.getAttribute('data-list'));
-    });
-}
+elements.downloadInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        elements.downloadInput.blur();
+        startDownload();
+    }
+});
 
 var searchTimer = 0;
 elements.searchInput.addEventListener('input', function () {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(function () {
         state.searchTerm = elements.searchInput.value.trim();
-        refreshCurrentList();
+        refreshCurrentView();
     }, SEARCH_DEBOUNCE_MILLISECONDS);
 });
+
+function reportUnreachablePc() {
+    elements.televisionDot.className = 'dot';
+    elements.televisionLabel.textContent = 'pc not reachable';
+}
+
+var activityTimer = 0;
+
+function scheduleActivityPoll() {
+    window.clearTimeout(activityTimer);
+    var isLive = state.busy || state.running.length > NO_ITEMS;
+    activityTimer = window.setTimeout(async function () {
+        if (document.hidden === false) {
+            await pollActivity();
+            if (state.view === VIEW_DOWNLOADS && state.busy === false) {
+                await refreshCurrentView();
+            }
+        }
+        scheduleActivityPoll();
+    }, isLive ? LIVE_POLL_MILLISECONDS : IDLE_POLL_MILLISECONDS);
+}
 
 window.setInterval(function () {
     if (document.hidden || state.busy) {
         return;
     }
-    loadTelevisionStatus().catch(function () {
-        elements.televisionDot.className = 'dot';
-        elements.televisionLabel.textContent = 'pc not reachable';
-    });
-    if (state.listKind === LIST_DOWNLOADS) {
-        refreshCurrentList();
-    }
-}, POLL_INTERVAL_MILLISECONDS);
+    loadTelevisionStatus().catch(reportUnreachablePc);
+}, TELEVISION_POLL_MILLISECONDS);
 
-loadTelevisionStatus().catch(function () {
-    elements.televisionDot.className = 'dot';
-    elements.televisionLabel.textContent = 'pc not reachable';
-});
-loadCatalogue().catch(function () {
-    return null;
-});
+moveActivityPanel(elements.homeActivitySlot);
+renderHomeList();
+loadTelevisionStatus().catch(reportUnreachablePc);
+pollActivity();
+scheduleActivityPoll();
+refreshCurrentView();
 }());
 </script>
 </body>

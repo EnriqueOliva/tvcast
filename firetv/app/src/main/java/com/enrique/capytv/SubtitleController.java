@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import android.graphics.Color;
 import android.os.Handler;
@@ -98,15 +98,17 @@ public final class SubtitleController {
         }
     };
 
+    // A positive offset delays the subtitles, the same direction every other player uses
+    // and the same direction the server applies when it shifts cues itself.
     private void render(boolean force) {
-        long lookup = player.getCurrentPosition() + offsetMilliseconds;
+        long lookup = player.getCurrentPosition() - offsetMilliseconds;
         List<String> active = cueTrack.textAt(lookup);
         if (force == false && active.equals(lastRendered)) {
             return;
         }
         if (active.equals(lastRendered) == false && active.isEmpty() == false) {
             long cueStart = cueTrack.activeStartMilliseconds(lookup);
-            android.util.Log.i("tvcast", "cuechange playerPosition=" + player.getCurrentPosition()
+            android.util.Log.i("capytv", "cuechange playerPosition=" + player.getCurrentPosition()
                     + " lookup=" + lookup + " cueStart=" + cueStart
                     + " lag=" + (cueStart < 0 ? 0 : lookup - cueStart));
         }

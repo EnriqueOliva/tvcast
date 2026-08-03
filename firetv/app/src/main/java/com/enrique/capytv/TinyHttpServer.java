@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import android.util.Log;
 
@@ -17,7 +17,7 @@ public final class TinyHttpServer {
         String handle(String method, String path, String body);
     }
 
-    private static final String LOG_TAG = "tvcast";
+    private static final String LOG_TAG = "capytv";
     private static final int WORKER_COUNT = 4;
     private static final int READ_BUFFER_SIZE = 4096;
     private static final int SOCKET_TIMEOUT_MILLISECONDS = 10000;
@@ -41,7 +41,7 @@ public final class TinyHttpServer {
             return;
         }
         running = true;
-        acceptThread = new Thread(this::acceptLoop, "tvcast-http");
+        acceptThread = new Thread(this::acceptLoop, "capytv-http");
         acceptThread.start();
     }
 

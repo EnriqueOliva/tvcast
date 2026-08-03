@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -9,24 +9,13 @@ import java.nio.charset.StandardCharsets;
 
 public final class ServerApi {
 
-    private static final int CONNECT_TIMEOUT_MILLISECONDS = 4000;
-    private static final int READ_TIMEOUT_MILLISECONDS = 15000;
+    private static final int CONNECT_TIMEOUT_MILLISECONDS = 5000;
+    private static final int READ_TIMEOUT_MILLISECONDS = 180000;
     private static final int BUFFER_SIZE = 8192;
     private static final int HTTP_MULTIPLE_CHOICES = 300;
+    private static final String EMPTY_STRING = "";
 
     private ServerApi() {
-    }
-
-    public static String get(String url) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLISECONDS);
-        connection.setReadTimeout(READ_TIMEOUT_MILLISECONDS);
-        connection.setRequestMethod("GET");
-        try {
-            return readResponse(connection);
-        } finally {
-            connection.disconnect();
-        }
     }
 
     public static String post(String url, String jsonBody) throws Exception {
@@ -52,7 +41,7 @@ public final class ServerApi {
                 ? connection.getInputStream()
                 : connection.getErrorStream();
         if (stream == null) {
-            return "";
+            return EMPTY_STRING;
         }
         ByteArrayOutputStream collected = new ByteArrayOutputStream();
         byte[] buffer = new byte[BUFFER_SIZE];

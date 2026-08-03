@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="capyTV">
+  <rect width="512" height="512" rx="96" fill="#0b0d10"/>
+  <rect x="88" y="140" width="336" height="216" rx="28" fill="none" stroke="#4da3ff" stroke-width="26"/>
+  <path d="M196 106 L256 158 L316 106" fill="none" stroke="#4da3ff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="152" y="292" width="208" height="22" rx="11" fill="#4da3ff"/>
+  <rect x="152" y="238" width="140" height="22" rx="11" fill="#3ddc84"/>
+</svg>

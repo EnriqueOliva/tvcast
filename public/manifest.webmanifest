@@ -1,0 +1,19 @@
+{
+  "name": "capyTV",
+  "short_name": "capyTV",
+  "description": "Paste a link on the phone, watch it on the TV.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-package com.enrique.tvcast;
+package com.enrique.capytv;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -15,8 +15,8 @@ public class PlaybackBridgeService extends Service {
 
     public static final int LISTEN_PORT = 8788;
 
-    private static final String LOG_TAG = "tvcast";
-    private static final String CHANNEL_ID = "tvcast-bridge";
+    private static final String LOG_TAG = "capytv";
+    private static final String CHANNEL_ID = "capytv-bridge";
     private static final int NOTIFICATION_ID = 1;
     private static final String EMPTY_STRING = "";
     private static final int REGISTER_ATTEMPTS = 10;
@@ -42,24 +42,29 @@ public class PlaybackBridgeService extends Service {
     }
 
     private void announceToServer() {
-        final String baseUrl = ServerLocator.getBaseUrl(this);
-        if (baseUrl.length() == 0) {
-            Log.i(LOG_TAG, "no server address stored yet, waiting to be found by the sweep");
-            return;
-        }
         new Thread(() -> {
             for (int attempt = 0; attempt < REGISTER_ATTEMPTS; attempt += 1) {
-                try {
-                    ServerApi.post(baseUrl + "/api/tv/register", "{}");
-                    Log.i(LOG_TAG, "registered with the pc at " + baseUrl);
-                    return;
-                } catch (Exception error) {
-                    Log.w(LOG_TAG, "register attempt " + (attempt + 1) + " failed: " + error.getMessage());
-                    try {
-                        Thread.sleep(REGISTER_RETRY_MILLISECONDS);
-                    } catch (InterruptedException interrupted) {
-                        return;
+                String baseUrl = ServerLocator.getBaseUrl(this);
+                if (baseUrl.length() == 0) {
+                    baseUrl = ServerLocator.sweepSubnet();
+                    if (baseUrl.length() > 0) {
+                        ServerLocator.setBaseUrl(this, baseUrl);
                     }
+                }
+                if (baseUrl.length() > 0) {
+                    try {
+                        ServerApi.post(baseUrl + "/api/tv/register", "{}");
+                        Log.i(LOG_TAG, "registered with the pc at " + baseUrl);
+                        return;
+                    } catch (Exception error) {
+                        Log.w(LOG_TAG, "register attempt " + (attempt + 1) + " failed: " + error.getMessage());
+                        ServerLocator.forgetBaseUrl(this);
+                    }
+                }
+                try {
+                    Thread.sleep(REGISTER_RETRY_MILLISECONDS);
+                } catch (InterruptedException interrupted) {
+                    return;
                 }
             }
         }).start();
@@ -68,11 +73,11 @@ public class PlaybackBridgeService extends Service {
     private void startInForeground() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID, "tvcast bridge", NotificationManager.IMPORTANCE_MIN);
+                CHANNEL_ID, "capyTV bridge", NotificationManager.IMPORTANCE_MIN);
         channel.setShowBadge(false);
         manager.createNotificationChannel(channel);
         Notification notification = new Notification.Builder(this, CHANNEL_ID)
-                .setContentTitle("tvcast")
+                .setContentTitle("capyTV")
                 .setContentText("Ready for the phone")
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
                 .build();
@@ -81,7 +86,7 @@ public class PlaybackBridgeService extends Service {
 
     private String handle(String method, String path, String body) {
         if (path.startsWith("/ping")) {
-            return "{\"app\":\"tvcast\",\"port\":" + LISTEN_PORT + "}";
+            return "{\"app\":\"capytv\",\"port\":" + LISTEN_PORT + "}";
         }
         if (path.startsWith("/play") && method.equals("POST")) {
             return startPlayback(body);
